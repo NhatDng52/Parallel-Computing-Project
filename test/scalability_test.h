@@ -1,6 +1,6 @@
 // scalability : Check how well the algorithm scales with increasing computing resources
 /***
- * Sequence of tests with different thread numbers, aim to measure scalability metrics
+ * Sequence of tests with different size
 ***/
 // Because We use OpenMP and OpenMPI, so we need 3 specific tests to adjust to these libraries
 #include <iostream>
