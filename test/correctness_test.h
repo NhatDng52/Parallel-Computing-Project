@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <numeric>
+#include"../utils.h"
 using namespace std;
 
 void test_1(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<double>>&, const vector<std::vector<double>>&)) ;

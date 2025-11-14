@@ -8,7 +8,8 @@
 #include <chrono>
 #include <numeric>
 #include <omp.h>
-#include <mpi.h>
+//#include <mpi.h>
+#include"../utils.h"
 using namespace std;
 
 void test_scalability_OpenMP(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<double>>&, const vector<std::vector<double>>&)) ;
