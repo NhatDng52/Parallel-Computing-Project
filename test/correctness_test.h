@@ -1,15 +1,13 @@
 // correctness : Check if the algorithm produces the correct output for a given input
 /***
  * Test 1: Small input test with zeroes, negative numbers, and positive numbers 
- * Test 2: Large input test with zeroes, negative numbers, and positive numbers
- * Test 3: Small non-square matrix test
- * Test 4: Large non-square matrix test
- * Test 5(longest): Mathematical properties test (associativity, distributivity, etc.)
+ * Test 2: Small non-square matrix test
+ * Test 3(longest): Mathematical properties test (associativity, distributivity, etc.)
  *     Include : 
- *        * (A + B) + C = A + (B + C)
+ *        * (A + B) + C = A + (B + C)  // this is not tested in this assignment, since our job just matrix multiplication
  *        * (A * B) * C = A * (B * C)
- *        * A * (B + C) = A * B + A * C
- *        * A + 0 = A
+ *        * A * (B + C) = A * B + A * C //this is same as above
+ *        * A + 0 = A                   // this is same as above
  *        * A * I = I * A = A
  *        * A * 0 = 0 * A = 0
  *        * A * B not= B * A
