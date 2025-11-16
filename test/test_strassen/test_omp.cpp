@@ -111,12 +111,15 @@ int main() {
     //     << "\n";
 
     // Test 02 Test Correctness with Big Matrix
-    Matrix A = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
-    Matrix B = read_matrix_from_csv("./test/test_case/medium_random_matrix_B_256x256.csv");
+    // Matrix A = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
+    // Matrix B = read_matrix_from_csv("./test/test_case/medium_random_matrix_B_256x256.csv");
     
     // Matrix A = read_matrix_from_csv("./test/test_case/matrix_3x4.csv");
     // Matrix B = read_matrix_from_csv("./test/test_case/matrix_4x2.csv");
 
+    Matrix A = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
+    Matrix B = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
+    
     cout << "\nTesting Mul Strassen...\n";
     auto C_strassen_op = op->apply_strassen(A, B);
     auto C_strassen_expected = ground_truth_mul(A, B);

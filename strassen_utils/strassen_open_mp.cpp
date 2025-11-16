@@ -67,22 +67,33 @@ class StrassenOpenMPI : public IStrassenOp {
 
                 Matrix M1, M2, M3, M4, M5, M6, M7;
 
-                #pragma omp parallel sections
+                #pragma omp parallel
                 {
-                    #pragma omp section
-                    M1 = implement_strassen(mat_add(A11, A22), mat_add(B11, B22));
-                    #pragma omp section
-                    M2 = implement_strassen(mat_add(A21, A22), B11);
-                    #pragma omp section
-                    M3 = implement_strassen(A11, mat_sub(B12, B22));
-                    #pragma omp section
-                    M4 = implement_strassen(A22, mat_sub(B21, B11));
-                    #pragma omp section
-                    M5 = implement_strassen(mat_add(A11, A12), B22);
-                    #pragma omp section
-                    M6 = implement_strassen(mat_sub(A21, A11), mat_add(B11, B12));
-                    #pragma omp section
-                    M7 = implement_strassen(mat_sub(A12, A22), mat_add(B21, B22));
+                    #pragma omp single nowait
+                    {
+                        #pragma omp task shared(M1)
+                        M1 = implement_strassen(mat_add(A11, A22), mat_add(B11, B22));
+
+                        #pragma omp task shared(M2)
+                        M2 = implement_strassen(mat_add(A21, A22), B11);
+
+                        #pragma omp task shared(M3)
+                        M3 = implement_strassen(A11, mat_sub(B12, B22));
+
+                        #pragma omp task shared(M4)
+                        M4 = implement_strassen(A22, mat_sub(B21, B11));
+
+                        #pragma omp task shared(M5)
+                        M5 = implement_strassen(mat_add(A11, A12), B22);
+
+                        #pragma omp task shared(M6)
+                        M6 = implement_strassen(mat_sub(A21, A11), mat_add(B11, B12));
+
+                        #pragma omp task shared(M7)
+                        M7 = implement_strassen(mat_sub(A12, A22), mat_add(B21, B22));
+
+                        #pragma omp taskwait
+                    }
                 }
 
                 Matrix C11 = mat_add(mat_sub(mat_add(M1, M4), M5), M7);
