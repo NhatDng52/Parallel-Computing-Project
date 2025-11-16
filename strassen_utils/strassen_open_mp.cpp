@@ -57,13 +57,10 @@ class StrassenOpenMPI : public IStrassenOp {
             if (mat_size <= THRESHOLD) {
                 return mat_mul_naive(A, B);
             } else {
-                Matrix A_pad = padding(A);
-                Matrix B_pad = padding(B);
+                int n = A.size();
 
-                int n = A_pad.size();
-
-                vector<Matrix> sub_mat_a = divide_mat(A_pad);
-                vector<Matrix> sub_mat_b = divide_mat(B_pad);
+                vector<Matrix> sub_mat_a = divide_mat(A);
+                vector<Matrix> sub_mat_b = divide_mat(B);
 
                 Matrix A11 = sub_mat_a[0], A12 = sub_mat_a[1], A21 = sub_mat_a[2], A22 = sub_mat_a[3];
                 Matrix B11 = sub_mat_b[0], B12 = sub_mat_b[1], B21 = sub_mat_b[2], B22 = sub_mat_b[3];
@@ -189,8 +186,10 @@ class StrassenOpenMPI : public IStrassenOp {
             if (A.empty() || B.empty() || middleCos != middle_B_size) {
                 throw runtime_error("Lỗi ma trận, trong phép toán apply_strassen strassen_op_omp");
             }
+            Matrix A_pad = padding(A);
+            Matrix B_pad = padding(B);
 
-            Matrix C_pad = implement_strassen(A, B);
+            Matrix C_pad = implement_strassen(A_pad, B_pad);
 
             Matrix C(rows, std::vector<double>(cols, 0.0));
             

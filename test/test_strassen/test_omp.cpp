@@ -121,6 +121,10 @@ int main() {
     auto C_strassen_op = op->apply_strassen(A, B);
     auto C_strassen_expected = ground_truth_mul(A, B);
 
+    print_matrix(C_strassen_op);
+    cout << "-----------------------------------------\n";
+    print_matrix(C_strassen_expected);
+
     cout << "Strassen Mul OK? " 
         << (compare_matrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") 
         << "\n";
