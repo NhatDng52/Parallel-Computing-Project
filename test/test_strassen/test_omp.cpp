@@ -10,38 +10,6 @@
 
 using namespace std;
 
-// Gõ vector<vector<double>> hơi dài, dùng alias
-using Matrix = vector<vector<double>>;
-
-/**
- * ================================================================
- * Phần 1: Các hàm và lớp giả lập (Dummy)
- * (Bạn hãy thay thế bằng implementation thật của bạn)
- * ================================================================
- */
-
-/**
- * @brief In ma trận ra console
- */
-void printMatrix(const Matrix& mat, const string& title, const int &max_size) {
-    cout << "--- " << title << " ---" << endl;
-    if (mat.empty()) {
-        cout << "[Empty Matrix]" << endl;
-        return;
-    }
-
-    int N = min((int)mat.size(), max_size);
-    int M = min((int)mat[0].size(), max_size);
-
-    for (int i = 190; i < N; ++i) {
-        for (int j = 190; j < M; ++j) {
-            cout << setw(8) << setprecision(2) << mat[i][j];
-        }
-        cout << endl;
-    }
-    cout << "--------------------" << endl;
-}
-
 /**
  * ================================================================
  * Phần 2: Các hàm "Ground Truth" (Naive) để tạo kết quả mong đợi
@@ -55,7 +23,7 @@ Matrix createRandomMatrix(int N) {
     Matrix mat(N, vector<double>(N));
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            mat[i][j] = rand() % 10; // Số ngẫu nhiên từ 0 đến 9
+            mat[i][j] = rand() % 10;
         }
     }
     return mat;
@@ -122,31 +90,6 @@ Matrix ground_truth_mul(const Matrix& A, const Matrix& B) {
     return C;
 }
 
-/**
- * @brief So sánh hai ma trận (vì so sánh số thực)
- */
-bool compareMatrices(const Matrix& A, const Matrix& B) {
-    if (A.size() != B.size() || (A.empty() && !B.empty()) || (!A.empty() && B.empty()))
-        return false;
-    if (A.empty()) return true; // Cả hai đều rỗng
-
-    int N = A.size();
-    if (A[0].size() != B[0].size()) return false;
-    
-    int M = A[0].size();
-
-    int THRESHOLD = 1e-30;
-
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < M; ++j) {
-            if (fabs(A[i][j] - B[i][j]) > THRESHOLD) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 int main() {
     srand(static_cast<unsigned>(time(0)));
 
@@ -159,17 +102,12 @@ int main() {
     // Matrix A = createRandomMatrix(N);
     // Matrix B = createRandomMatrix(N);
 
-    // if (N <= 16) {
-    //     printMatrix(A, "Matrix A (Random)");
-    //     printMatrix(B, "Matrix B (Random)");
-    // }
-
     // cout << "\nTesting Mul Strassen...\n";
     // auto C_strassen_op = op->apply_strassen(A, B);
     // auto C_strassen_expected = ground_truth_mul(A, B);
 
     // cout << "Strassen Mul OK? " 
-    //     << (compareMatrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") 
+    //     << (compare_matrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") 
     //     << "\n";
 
     // Test 02 Test Correctness with Big Matrix
@@ -178,20 +116,13 @@ int main() {
     
     // Matrix A = read_matrix_from_csv("./test/test_case/matrix_3x4.csv");
     // Matrix B = read_matrix_from_csv("./test/test_case/matrix_4x2.csv");
-    // print_matrix(A);
-    // cout << "-----------------------------\n";
-    // print_matrix(B);
 
     cout << "\nTesting Mul Strassen...\n";
     auto C_strassen_op = op->apply_strassen(A, B);
     auto C_strassen_expected = ground_truth_mul(A, B);
 
-    printMatrix(C_strassen_op, "", 200);
-    cout << "-------------------------------\n";
-    printMatrix(C_strassen_expected, "", 200);
-
     cout << "Strassen Mul OK? " 
-        << (compareMatrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") 
+        << (compare_matrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") 
         << "\n";
 
     return 0;

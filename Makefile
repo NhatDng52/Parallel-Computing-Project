@@ -67,7 +67,3 @@ strassen_test: $(STRASSEN_OMP_TEST_TARGET)
 
 $(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
 	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
-
-# Clean riêng Strassen test
-clean_strassen_test:
-	rm -f $(STRASSEN_OMP_TEST_TARGET)
