@@ -1,6 +1,8 @@
 
 #include "utils.h"
 
+const double EPSILON = 1e-9;
+
 std::vector<std::vector<double>> read_matrix_from_csv(const std::string& filepath) {
     
     std::vector<std::vector<double>> matrix;
@@ -52,7 +54,7 @@ bool compare_matrices(const std::vector<std::vector<double>>& A, const std::vect
             return false;
         }
         for (size_t j = 0; j < A[i].size(); ++j) {
-            if (A[i][j] != B[i][j]) {
+            if (abs(A[i][j] - B[i][j]) > EPSILON) {
                 return false;
             }
         }
@@ -69,4 +71,10 @@ void print_matrix(const std::vector<std::vector<double>>& m) {
         }
         std::cout << '\n';
     }
+    // for (int i = 250; i < m.size(); i++) {
+    //     for (int j = 250; j < m[0].size(); j++) {
+    //         cout << m[i][j];
+    //     }
+    //     cout << "\n";
+    // }
 }

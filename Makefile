@@ -40,7 +40,7 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -54,5 +54,16 @@ help:
 	@echo "  make debug  - build with debug symbols"
 	@echo "  make clean  - remove objects, deps and executable"
 	@echo "  make run    - run the produced executable"
+	@echo "  make strassen_test - build and run Strassen OpenMP test"
 	@echo "Notes: set CXX to change compiler, e.g. 'make CXX=clang++'"
 
+# Strassen omp test target
+NUM_THREADS := 4
+STRASSEN_OMP_TEST_TARGET := strassen_test_app_omp
+STRASSEN_OMP_TEST_SRC := test/test_strassen/test_omp.cpp
+
+strassen_test: $(STRASSEN_OMP_TEST_TARGET)
+	OMP_NUM_THREADS=$(NUM_THREADS) ./$(STRASSEN_OMP_TEST_TARGET)
+
+$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
+	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
