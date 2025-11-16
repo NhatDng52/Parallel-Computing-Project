@@ -57,7 +57,7 @@ help:
 	@echo "  make strassen_test - build and run Strassen OpenMP test"
 	@echo "Notes: set CXX to change compiler, e.g. 'make CXX=clang++'"
 
-# Strassen test target
+# Strassen omp test target
 NUM_THREADS := 4
 STRASSEN_OMP_TEST_TARGET := strassen_test_app_omp
 STRASSEN_OMP_TEST_SRC := test/test_strassen/test_omp.cpp
