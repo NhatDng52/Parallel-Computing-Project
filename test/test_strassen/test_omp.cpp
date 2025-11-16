@@ -97,7 +97,7 @@ int main() {
 
     // cout << "Đang tạo test case cho ma trận " << N << "x" << N << "...\n";
 
-    IStrassenOp* op = new StrassenOpenMPI();
+    IStrassenOp* op = new StrassenOpenMP();
 
     // Matrix A = createRandomMatrix(N);
     // Matrix B = createRandomMatrix(N);

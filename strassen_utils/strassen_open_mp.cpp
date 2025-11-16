@@ -1,7 +1,7 @@
 #include "strassen_op.h"
 #include <omp.h>
 
-class StrassenOpenMPI : public IStrassenOp {
+class StrassenOpenMP : public IStrassenOp {
     private:
         const int THRESHOLD = 1;
 
