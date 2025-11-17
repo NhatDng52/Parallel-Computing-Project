@@ -78,3 +78,23 @@ void print_matrix(const std::vector<std::vector<double>>& m) {
     //     cout << "\n";
     // }
 }
+
+void write_matrix_to_csv(const std::string& filepath, const std::vector<std::vector<double>>& matrix) {
+    std::ofstream file(filepath);
+    
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open file for writing: " + filepath);
+    }
+    
+    for (const auto& row : matrix) {
+        for (size_t j = 0; j < row.size(); ++j) {
+            file << row[j];
+            if (j < row.size() - 1) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+    
+    file.close();
+}
