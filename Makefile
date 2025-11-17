@@ -74,9 +74,11 @@ NUM_PROCESSES := 4
 STRASSEN_MPI_TEST_TARGET := strassen_test_app_mpi
 STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
 MPICXX := mpic++
-
-strassen_test_mpi: $(STRASSEN_MPI_TEST_TARGET)
-	mpirun -np $(NUM_PROCESSES) ./$(STRASSEN_MPI_TEST_TARGET)
+CXXFLAGS := -O2 -std=c++17 -Wall -Wextra
+HOSTFILE := hostfile/hostfile.txt
 
 $(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) utils.cpp
 	$(MPICXX) $(CXXFLAGS) -DOMPI_SKIP_MPICXX -o $@ $^
+
+strassen_test_mpi: $(STRASSEN_MPI_TEST_TARGET)
+	mpirun --hostfile $(HOSTFILE) -np $(NUM_PROCESSES) ./$(STRASSEN_MPI_TEST_TARGET)

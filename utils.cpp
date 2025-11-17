@@ -62,9 +62,10 @@ bool compare_matrices(const std::vector<std::vector<double>>& A, const std::vect
             if (abs(A[i][j] - B[i][j]) > EPSILON) {
                 cout << "Mismatch at (" << i << ", " << j << "): "
                      << A[i][j] << " vs " << B[i][j] << "\n";
+                
+                // print_matrix(A);
+                // print_matrix(B);
 
-                print_matrix(A);
-                print_matrix(B);
                 return false;
             }
         }
@@ -81,10 +82,11 @@ void print_matrix(const std::vector<std::vector<double>>& m) {
     //     }
     //     std::cout << '\n';
     // }
-    for (int i = 250; i < m.size(); i++) {
-        for (int j = 250; j < m[0].size(); j++) {
-            cout << fixed << setprecision(2) << m[i][j] << " ";
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            cout << setw(10) << fixed << setprecision(2) << m[i][j] << " ";
         }
         cout << "\n";
     }
+    cout << "----------------------\n";
 }

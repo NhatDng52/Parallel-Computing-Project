@@ -3,6 +3,7 @@
 #include <queue>
 #include <vector>
 #include <time.h>
+#include "utils.h"
 
 class StrassenOpenMPI : public IStrassenOp {
 
@@ -448,24 +449,27 @@ private:
 public:
     Matrix apply_strassen(const Matrix &A, const Matrix &B) {
         
-        int initialized;
-        MPI_Initialized(&initialized);
+        // int initialized;
+        // MPI_Initialized(&initialized);
         
-        bool should_finalize = false;
+        // bool should_finalize = false;
 
-        if (!initialized) {
-            int argc = 0;
-            char** argv = nullptr;
-            MPI_Init(&argc, &argv);
-            should_finalize = true;
-        }
+        // // print_matrix(A);
+        // print_matrix(A);
+
+        // if (!initialized) {
+        //     int argc = 0;
+        //     char** argv = nullptr;
+        //     MPI_Init(&argc, &argv);
+        //     should_finalize = true;
+        // }
         
-        Matrix result = strassen_implementation(A, B);
+        // Matrix result = strassen_implementation(A, B);
         
-        if (should_finalize) {
-            MPI_Finalize();
-        }
+        // if (should_finalize) {
+        //     MPI_Finalize();
+        // }
         
-        return result;
+        // return result;
     }
 };
