@@ -68,40 +68,45 @@ Matrix ground_truth_mul(const Matrix& A, const Matrix& B) {
     return C;
 }
 
+void testcase(int &total_tests, int &passed_tests, IStrassenOp* op, const string& test_name, const Matrix& A, const Matrix& B, bool isWorker=false) {
+    cout << test_name << "\n";
+    cout << "-----------------------------------------\n";
+
+    auto start = high_resolution_clock::now();
+
+    bool test_completed = run_with_timeout([&]() -> bool {
+        auto C_strassen = op->apply_strassen(A, B, isWorker);
+        auto C_expected = ground_truth_mul(A, B);
+        return compare_matrices(C_strassen, C_expected);
+    }, MAX_TEST_TIME_SECONDS, test_name);
+
+    auto end = high_resolution_clock::now();
+    duration<double> elapsed = end - start;
+
+    cout << "Execution time: " << fixed << setprecision(3) << elapsed.count() << " seconds\n";
+
+    if (elapsed.count() > MAX_TEST_TIME_SECONDS) {
+        cout << test_name << " FAILED: Execution time exceeded " << MAX_TEST_TIME_SECONDS << " seconds.\n";
+    } else if (test_completed) {
+        cout << test_name << " PASSED: Strassen MPI result matches ground truth multiplication.\n";
+        passed_tests++;
+    } else {
+        cout << test_name << " FAILED: Test timed out or result mismatch.\n";
+    }
+
+    total_tests++;
+}
+
 void main_test(IStrassenOp* op, bool isWorker=false) {
     if (!isWorker) {
         int total_tests = 0;
         int passed_tests = 0;
 
-        cout << "TEST 1: Negative 256x256 matrix from CSV\n";
-        cout << "-----------------------------------------\n";
-
+        // TestCase 1
         Matrix A1 = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
         Matrix B1 = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
+        testcase(total_tests, passed_tests, op, "TestCase 1: 256x256 Matrix Multiplication", A1, B1);
 
-        auto start1 = high_resolution_clock::now();
-
-        bool test1_completed = run_with_timeout([&]() -> bool {
-            auto C_strassen1 = op->apply_strassen(A1, B1, isWorker);
-            auto C_expected1 = ground_truth_mul(A1, B1);
-            return compare_matrices(C_strassen1, C_expected1);
-        }, MAX_TEST_TIME_SECONDS, "TEST 1");
-
-        auto end1 = high_resolution_clock::now();
-        duration<double> elapsed1 = end1 - start1;
-
-        cout << "Execution time: " << fixed << setprecision(3) << elapsed1.count() << " seconds\n";
-
-        if (elapsed1.count() > MAX_TEST_TIME_SECONDS) {
-            cout << "TEST 1 FAILED: Execution time exceeded " << MAX_TEST_TIME_SECONDS << " seconds.\n";
-        } else if (test1_completed) {
-            cout << "TEST 1 PASSED: Strassen MPI result matches ground truth multiplication.\n";
-            passed_tests++;
-        } else {
-            cout << "TEST 1 FAILED: Test timed out or result mismatch.\n";
-        }
-
-        total_tests++;
     } else {
         op->apply_strassen(Matrix(), Matrix(), isWorker);
     }
@@ -109,7 +114,7 @@ void main_test(IStrassenOp* op, bool isWorker=false) {
 
 
 int main() {
-    IStrassenOp *op = new BetterStrassenOpenMPI();
+    IStrassenOp *op = new StrassenOpenMPI();
 
     int initialized, world_rank, world_size;
 
