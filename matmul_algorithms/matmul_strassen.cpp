@@ -18,8 +18,8 @@ vector<vector<double>> matrix_mult_strassen_OpenMP(const vector<vector<double>>&
 }
 
 vector<vector<double>> matrix_mult_strassen_OpenMPI(const vector<vector<double>>& A, const vector<vector<double>>& B) {
-    /*
-        Implement code 
-    */
-   return vector<vector<double>>{};
+    IStrassenOp * strassenOpenMPI = new StrassenOpenMPI();
+    vector<vector<double>> result = strassenOpenMPI->apply_strassen(A, B);
+    delete strassenOpenMPI;
+    return result;
 }

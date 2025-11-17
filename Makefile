@@ -40,7 +40,7 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -55,6 +55,7 @@ help:
 	@echo "  make clean  - remove objects, deps and executable"
 	@echo "  make run    - run the produced executable"
 	@echo "  make strassen_test - build and run Strassen OpenMP test"
+	@echo "  make strassen_test_mpi - build and run Strassen MPI test with $(NUM_PROCESSES) processes"
 	@echo "Notes: set CXX to change compiler, e.g. 'make CXX=clang++'"
 
 # Strassen omp test target
@@ -67,3 +68,15 @@ strassen_test: $(STRASSEN_OMP_TEST_TARGET)
 
 $(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
 	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
+
+# Strassen MPI test target
+NUM_PROCESSES := 4
+STRASSEN_MPI_TEST_TARGET := strassen_test_app_mpi
+STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
+MPICXX := mpic++
+
+strassen_test_mpi: $(STRASSEN_MPI_TEST_TARGET)
+	mpirun -np $(NUM_PROCESSES) ./$(STRASSEN_MPI_TEST_TARGET)
+
+$(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) utils.cpp
+	$(MPICXX) $(CXXFLAGS) -o $@ $^
