@@ -214,7 +214,10 @@ int main(int argc, char** argv) {
              << (100.0 * passed_tests / total_tests) << "%\n";
         cout << "========================================\n";
     } else {
-        op->apply_strassen(Matrix(), Matrix());
+        // Workers need to handle multiple test cases
+        for (int test = 0; test < 4; test++) {
+            op->apply_strassen(Matrix(), Matrix());
+        }
     }
     
     delete op;

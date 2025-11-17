@@ -1,5 +1,10 @@
 
 #include "utils.h"
+#include <fstream>
+#include <sstream>
+#include <cmath>
+#include <iostream>
+#include <iomanip>
 
 const double EPSILON = 1e-9;
 
@@ -55,6 +60,11 @@ bool compare_matrices(const std::vector<std::vector<double>>& A, const std::vect
         }
         for (size_t j = 0; j < A[i].size(); ++j) {
             if (abs(A[i][j] - B[i][j]) > EPSILON) {
+                cout << "Mismatch at (" << i << ", " << j << "): "
+                     << A[i][j] << " vs " << B[i][j] << "\n";
+
+                print_matrix(A);
+                print_matrix(B);
                 return false;
             }
         }
@@ -64,17 +74,17 @@ bool compare_matrices(const std::vector<std::vector<double>>& A, const std::vect
 }
 
 void print_matrix(const std::vector<std::vector<double>>& m) {
-    for (const auto& row : m) {
-        for (size_t j = 0; j < row.size(); ++j) {
-            if (j) std::cout << ' ';
-            std::cout << row[j];
-        }
-        std::cout << '\n';
-    }
-    // for (int i = 250; i < m.size(); i++) {
-    //     for (int j = 250; j < m[0].size(); j++) {
-    //         cout << m[i][j];
+    // for (const auto& row : m) {
+    //     for (size_t j = 0; j < row.size(); ++j) {
+    //         if (j) std::cout << ' ';
+    //         std::cout << row[j];
     //     }
-    //     cout << "\n";
+    //     std::cout << '\n';
     // }
+    for (int i = 250; i < m.size(); i++) {
+        for (int j = 250; j < m[0].size(); j++) {
+            cout << fixed << setprecision(2) << m[i][j] << " ";
+        }
+        cout << "\n";
+    }
 }

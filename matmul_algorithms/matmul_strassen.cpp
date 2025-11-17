@@ -1,6 +1,7 @@
 #include "matmul_strassen.h"
 #include "strassen_utils/strassen_op.h"
 #include "strassen_utils/strassen_open_mp.cpp"
+#include "strassen_utils/strassen_open_mpi.cpp"
 
 using namespace std;
 vector<vector<double>> matrix_mult_strassen(const vector<vector<double>>& A, const vector<vector<double>>& B) {

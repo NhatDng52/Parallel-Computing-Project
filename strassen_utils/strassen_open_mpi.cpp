@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <queue>
 #include <vector>
+#include <time.h>
 
 class StrassenOpenMPI : public IStrassenOp {
 
@@ -319,6 +320,7 @@ private:
             int tasks_completed = 0;
             
             while (tasks_completed < 7) {
+                // Assign tasks to idle workers
                 for (int i = 0; i < num_workers && !task_queue.empty(); ++i) {
                     if (!workers[i].busy) {
                         Task task = task_queue.front();
@@ -335,6 +337,8 @@ private:
                     }
                 }
                 
+                // Check for completed tasks
+                bool any_completed = false;
                 for (int i = 0; i < num_workers; ++i) {
                     if (workers[i].busy) {
                         int flag;
@@ -351,8 +355,17 @@ private:
                             M_results[workers[i].current_task_id] = result;
                             workers[i].busy = false;
                             tasks_completed++;
+                            any_completed = true;
                         }
                     }
+                }
+                
+                // Small sleep to prevent busy waiting
+                if (!any_completed && tasks_completed < 7) {
+                    struct timespec ts;
+                    ts.tv_sec = 0;
+                    ts.tv_nsec = 1000000; // 1ms
+                    nanosleep(&ts, NULL);
                 }
             }
             
@@ -384,17 +397,17 @@ private:
     }
 
     void worker_compute() {
+        // Process tasks until receiving termination signal
         while (true) {
             Matrix A_con = recv_matrix(0, 10, MPI_COMM_WORLD);
             
             if (A_con.empty()) {
+                // Termination signal - exit this batch
                 break;
             }
             
             Matrix B_con = recv_matrix(0, 20, MPI_COMM_WORLD);
-
             Matrix M_result = strassen_sequential(A_con, B_con);
-
             send_matrix(M_result, 0, 30, MPI_COMM_WORLD);
         }
     }
@@ -425,6 +438,7 @@ private:
             C_final = remove_padding(C_padded, original_rows, original_cols);
 
         } else {
+            // Worker process: process one task at a time
             worker_compute();
         } 
 
