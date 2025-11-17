@@ -70,15 +70,20 @@ $(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
 	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
 
 # Strassen MPI test target
-NUM_PROCESSES := 4
-STRASSEN_MPI_TEST_TARGET := strassen_test_app_mpi
+NUM_PROCESSES := 1
+STRASSEN_MPI_TEST_TARGET := strassen_worker_mpi
 STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
 MPICXX := mpic++
 CXXFLAGS := -O2 -std=c++17 -Wall -Wextra
 HOSTFILE := hostfile/hostfile.txt
 
-$(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) utils.cpp
-	$(MPICXX) $(CXXFLAGS) -DOMPI_SKIP_MPICXX -o $@ $^
+# Include path
+INCLUDE := -I. -I../strassen_utils
 
-strassen_test_mpi: $(STRASSEN_MPI_TEST_TARGET)
+# Build target
+$(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) utils.cpp
+	$(MPICXX) $(CXXFLAGS) $(INCLUDE) -DOMPI_SKIP_MPICXX -o $@ $^
+
+# Run test với hostfile
+strassen_test_mpi: clean $(STRASSEN_MPI_TEST_TARGET)
 	mpirun --hostfile $(HOSTFILE) -np $(NUM_PROCESSES) ./$(STRASSEN_MPI_TEST_TARGET)

@@ -6,9 +6,10 @@
 #include <chrono>
 #include <future>
 #include <csignal>
-#include "../strassen_utils/strassen_op.h"
-#include "../strassen_utils/strassen_open_mpi.cpp"
-#include "../../utils.h"
+#include "strassen_utils/strassen_op.h"
+#include "strassen_utils/strassen_open_mpi.cpp"
+#include "strassen_utils/better_strassen_open_mpi.cpp"
+#include "utils.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -67,41 +68,76 @@ Matrix ground_truth_mul(const Matrix& A, const Matrix& B) {
     return C;
 }
 
-int main() {
-    IStrassenOp *op = new StrassenOpenMPI();
-    int total_tests = 0;
-    int passed_tests = 0;
+void main_test(IStrassenOp* op, bool isWorker=false) {
+    if (!isWorker) {
+        int total_tests = 0;
+        int passed_tests = 0;
 
-    cout << "TEST 1: Negative 256x256 matrix from CSV\n";
-    cout << "-----------------------------------------\n";
-    
-    Matrix A1 = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
-    Matrix B1 = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
-    
-    cout << "Master process starting computation...\n";
-    auto start1 = high_resolution_clock::now();
-    
-    bool test1_completed = run_with_timeout([&]() -> bool {
-        auto C_strassen1 = op->apply_strassen(A1, B1);
-        auto C_expected1 = ground_truth_mul(A1, B1);
-        return compare_matrices(C_strassen1, C_expected1);
-    }, MAX_TEST_TIME_SECONDS, "TEST 1");
-    
-    auto end1 = high_resolution_clock::now();
-    duration<double> elapsed1 = end1 - start1;
-    
-    cout << "Execution time: " << fixed << setprecision(3) << elapsed1.count() << " seconds\n";
-    
-    if (elapsed1.count() > MAX_TEST_TIME_SECONDS) {
-        cout << "TEST 1 FAILED: Execution time exceeded " << MAX_TEST_TIME_SECONDS << " seconds.\n";
-    } else if (test1_completed) {
-        cout << "TEST 1 PASSED: Strassen MPI result matches ground truth multiplication.\n";
-        passed_tests++;
+        cout << "TEST 1: Negative 256x256 matrix from CSV\n";
+        cout << "-----------------------------------------\n";
+
+        Matrix A1 = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
+        Matrix B1 = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
+
+        auto start1 = high_resolution_clock::now();
+
+        bool test1_completed = run_with_timeout([&]() -> bool {
+            auto C_strassen1 = op->apply_strassen(A1, B1, isWorker);
+            auto C_expected1 = ground_truth_mul(A1, B1);
+            return compare_matrices(C_strassen1, C_expected1);
+        }, MAX_TEST_TIME_SECONDS, "TEST 1");
+
+        auto end1 = high_resolution_clock::now();
+        duration<double> elapsed1 = end1 - start1;
+
+        cout << "Execution time: " << fixed << setprecision(3) << elapsed1.count() << " seconds\n";
+
+        if (elapsed1.count() > MAX_TEST_TIME_SECONDS) {
+            cout << "TEST 1 FAILED: Execution time exceeded " << MAX_TEST_TIME_SECONDS << " seconds.\n";
+        } else if (test1_completed) {
+            cout << "TEST 1 PASSED: Strassen MPI result matches ground truth multiplication.\n";
+            passed_tests++;
+        } else {
+            cout << "TEST 1 FAILED: Test timed out or result mismatch.\n";
+        }
+
+        total_tests++;
     } else {
-        cout << "TEST 1 FAILED: Test timed out or result mismatch.\n";
+        op->apply_strassen(Matrix(), Matrix(), isWorker);
+    }
+}
+
+
+int main() {
+    IStrassenOp *op = new BetterStrassenOpenMPI();
+
+    int initialized, world_rank, world_size;
+
+    MPI_Initialized(&initialized);
+    
+    if (!initialized) {
+        MPI_Init(nullptr, nullptr);
     }
 
-    total_tests++;
-    
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    MPI_Comm parent;
+    MPI_Comm_get_parent(&parent);
+
+    if (parent == MPI_COMM_NULL) {
+        if (world_rank == 0) {
+            main_test(op);
+        }
+    } else {
+        main_test(op, true);
+    }
+
+    delete op;
+
+    MPI_Finalize();
+
     return 0;
+
 }
+
