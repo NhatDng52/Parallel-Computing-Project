@@ -91,10 +91,10 @@ Matrix combine_mat(const Matrix &C11, const Matrix &C12, const Matrix &C21, cons
 }
 
 Matrix strassen_recursive(const Matrix &A, const Matrix &B) {
-    const int THRESHOLD = 32; // Ngưỡng chuyển sang nhân thuần
+    const int THRESHOLD = 32; 
     int mat_size = A.size();
 
-    // SỬA: Điều kiện dừng dùng THRESHOLD và mat_mul_naive
+    
     if (mat_size <= THRESHOLD) {
         return matrix_mult_naive(A, B);
     } 
@@ -121,14 +121,12 @@ Matrix strassen_recursive(const Matrix &A, const Matrix &B) {
     Matrix M6 = strassen_recursive(mat_sub(A21, A11), mat_add(B11, B12));
     Matrix M7 = strassen_recursive(mat_sub(A12, A22), mat_add(B21, B22));
 
-    // C11, C12, C21, C22 calculations
+
     Matrix C11 = mat_add(mat_sub(mat_add(M1, M4), M5), M7);
     Matrix C12 = mat_add(M3, M5);
     Matrix C21 = mat_add(M2, M4);
-    // SỬA LỖI LOGIC C22: C22 = M1 - M2 + M3 + M6
     Matrix C22 = mat_add(mat_add(mat_sub(M1, M2), M3), M6);
 
-    // Combine sub-matrices into result matrix C
     Matrix C = combine_mat(C11, C12, C21, C22);
 
     return C;
