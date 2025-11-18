@@ -19,7 +19,7 @@ LDFLAGS :=
 LDLIBS :=
 
 # sources (root, matmul_algorithms, test)
-SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp)
+SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp) $(wildcard strassen_utils/*.cpp)
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(SRCS:.cpp=.d)
 

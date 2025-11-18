@@ -7,7 +7,8 @@
 int main () {
     
     // Correctness tests
-    test_correctness(matrix_mult_naive);
+    test_correctness(matrix_mult_strassen);
+    test_performance(matrix_mult_strassen);
 
     cout << "All tests completed." << endl;
     return 0;

@@ -75,18 +75,31 @@ bool compare_matrices(const std::vector<std::vector<double>>& A, const std::vect
 }
 
 void print_matrix(const std::vector<std::vector<double>>& m) {
-    // for (const auto& row : m) {
-    //     for (size_t j = 0; j < row.size(); ++j) {
-    //         if (j) std::cout << ' ';
-    //         std::cout << row[j];
-    //     }
-    //     std::cout << '\n';
-    // }
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            cout << setw(10) << fixed << setprecision(2) << m[i][j] << " ";
+    for (const auto& row : m) {
+        for (size_t j = 0; j < row.size(); ++j) {
+            if (j) std::cout << ' ';
+            std::cout << row[j];
         }
-        cout << "\n";
+        std::cout << '\n';
     }
-    cout << "----------------------\n";
+}
+
+void write_matrix_to_csv(const std::string& filepath, const std::vector<std::vector<double>>& matrix) {
+    std::ofstream file(filepath);
+    
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open file for writing: " + filepath);
+    }
+    
+    for (const auto& row : matrix) {
+        for (size_t j = 0; j < row.size(); ++j) {
+            file << row[j];
+            if (j < row.size() - 1) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+    
+    file.close();
 }
