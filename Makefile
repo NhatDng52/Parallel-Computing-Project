@@ -54,24 +54,26 @@ help:
 	@echo "  make debug  - build with debug symbols"
 	@echo "  make clean  - remove objects, deps and executable"
 	@echo "  make run    - run the produced executable"
-	@echo "  make strassen_test - build and run Strassen OpenMP test"
+	@echo "  make strassen_test_omp - build and run Strassen OpenMP test"
 	@echo "  make strassen_test_mpi - build and run Strassen MPI test with $(NUM_PROCESSES) processes"
 	@echo "Notes: set CXX to change compiler, e.g. 'make CXX=clang++'"
 
 # Strassen omp test target
 NUM_THREADS := 4
-STRASSEN_OMP_TEST_TARGET := strassen_test_app_omp
+STRASSEN_OMP_TEST_TARGET := strassen_test_omp_target
 STRASSEN_OMP_TEST_SRC := test/test_strassen/test_omp.cpp
+STRASSEN_OMP_IMPL := strassen_utils/strassen_open_mp.cpp
 
-strassen_test: $(STRASSEN_OMP_TEST_TARGET)
+strassen_test_omp: $(STRASSEN_OMP_TEST_TARGET)
 	OMP_NUM_THREADS=$(NUM_THREADS) ./$(STRASSEN_OMP_TEST_TARGET)
 
-$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
-	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
+# Target để build binary
+$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(STRASSEN_OMP_IMPL)
+	$(CXX) $(CXXFLAGS) -fopenmp -I. -Istrassen_utils -o $@ $^
 
 # Strassen MPI test target
 NUM_PROCESSES := 3
-STRASSEN_MPI_TEST_TARGET := strassen_worker_mpi
+STRASSEN_MPI_TEST_TARGET := strassen_test_mpi_target
 STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
 MPICXX := mpic++
 CXXFLAGS := -O2 -std=c++17 -Wall -Wextra

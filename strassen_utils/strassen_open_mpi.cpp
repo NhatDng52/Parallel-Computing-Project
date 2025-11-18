@@ -254,10 +254,8 @@ class StrassenOpenMPI : public IStrassenOp {
             vector<Task> tasks = distribute_matrix(A, B);
             vector<Matrix> M(7);
             
-            // Calculate how many workers we have (excluding master which is rank 0)
             int num_workers = world_size - 1;
             
-            // Send tasks to available workers only
             for (size_t i = 1; i < tasks.size() && i <= (size_t)num_workers; ++i) {
                 vector<double> flat_A = MPIUtils::flatten(tasks[i].A);
                 vector<double> flat_B = MPIUtils::flatten(tasks[i].B);
@@ -275,13 +273,11 @@ class StrassenOpenMPI : public IStrassenOp {
                 MPI_Send(flat_B.data(), rows_B * cols_B, MPI_DOUBLE, i, 0, global_comm);
             }
 
-            // Master computes task 0 and any tasks beyond available workers
             M[0] = strassen_recursive(tasks[0].A, tasks[0].B);
             for (size_t i = num_workers + 1; i < tasks.size(); ++i) {
                 M[i] = strassen_recursive(tasks[i].A, tasks[i].B);
             }
             
-            // Receive results from workers
             for (size_t i = 1; i < tasks.size() && i <= (size_t)num_workers; ++i) {
                 int rows_M, cols_M;
                 MPI_Recv(&rows_M, 1, MPI_INT, i, 0, global_comm, MPI_STATUS_IGNORE);
@@ -290,8 +286,6 @@ class StrassenOpenMPI : public IStrassenOp {
                 MPI_Recv(flat_M.data(), rows_M * cols_M, MPI_DOUBLE, i, 0, global_comm, MPI_STATUS_IGNORE);
                 M[i] = MPIUtils::unflatten(flat_M, rows_M, cols_M);
             }
-
-            // Don't send termination here - workers should stay alive for multiple operations
 
             Matrix C11 = MPIUtils::mat_add(MPIUtils::mat_sub(MPIUtils::mat_add(M[0], M[3]), M[4]), M[6]);
             Matrix C12 = MPIUtils::mat_add(M[2], M[4]);
@@ -317,7 +311,6 @@ class StrassenOpenMPI : public IStrassenOp {
                 int rows_A, cols_A, rows_B, cols_B;
                 MPI_Recv(&rows_A, 1, MPI_INT, 0, 0, global_comm, MPI_STATUS_IGNORE);
                 
-                // Check for termination signal
                 if (rows_A == -1) {
                     break;
                 }
@@ -347,7 +340,6 @@ class StrassenOpenMPI : public IStrassenOp {
         }
 
         Matrix mpi_strassen(const Matrix &A, const Matrix &B) {
-            // Handle empty matrices for worker processes
             if (A.empty() || B.empty()) {
                 if (world_rank != 0) {
                     worker_process();
@@ -398,7 +390,6 @@ class StrassenOpenMPI : public IStrassenOp {
         void cleanup() override {
             get_mpi_info();
             if (world_rank == 0) {
-                // Send termination signal to all workers
                 int num_workers = world_size - 1;
                 for (int i = 1; i <= num_workers; ++i) {
                     int terminate = -1;

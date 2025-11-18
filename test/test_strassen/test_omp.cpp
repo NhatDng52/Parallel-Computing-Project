@@ -5,8 +5,8 @@
 #include <ctime>   
 #include <algorithm>
 #include <cmath>  
-#include "../strassen_utils/strassen_open_mp.cpp"
-#include "../utils.cpp"
+#include "strassen_utils/strassen_open_mp.cpp"
+#include "utils.cpp"
 
 using namespace std;
 
