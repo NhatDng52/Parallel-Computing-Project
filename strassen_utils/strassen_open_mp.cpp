@@ -188,7 +188,7 @@ class StrassenOpenMP : public IStrassenOp {
 
     public:
 
-        Matrix apply_strassen(const Matrix &A, const Matrix &B, bool isWorker=false) override {
+        Matrix apply_strassen(const Matrix &A, const Matrix &B) override {
             int rows = A.size();
             int cols = B[0].size();
             int middleCos = A[0].size();

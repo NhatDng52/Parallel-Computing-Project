@@ -8,7 +8,6 @@
 #include <csignal>
 #include "strassen_utils/strassen_op.h"
 #include "strassen_utils/strassen_open_mpi.cpp"
-#include "strassen_utils/better_strassen_open_mpi.cpp"
 #include "utils.h"
 
 using namespace std;
@@ -68,14 +67,14 @@ Matrix ground_truth_mul(const Matrix& A, const Matrix& B) {
     return C;
 }
 
-void testcase(int &total_tests, int &passed_tests, IStrassenOp* op, const string& test_name, const Matrix& A, const Matrix& B, bool isWorker=false) {
+void testcase(int &total_tests, int &passed_tests, IStrassenOp* op, const string& test_name, const Matrix& A, const Matrix& B) {
     cout << test_name << "\n";
     cout << "-----------------------------------------\n";
 
     auto start = high_resolution_clock::now();
 
     bool test_completed = run_with_timeout([&]() -> bool {
-        auto C_strassen = op->apply_strassen(A, B, isWorker);
+        auto C_strassen = op->apply_strassen(A, B);
         auto C_expected = ground_truth_mul(A, B);
         return compare_matrices(C_strassen, C_expected);
     }, MAX_TEST_TIME_SECONDS, test_name);
@@ -97,52 +96,44 @@ void testcase(int &total_tests, int &passed_tests, IStrassenOp* op, const string
     total_tests++;
 }
 
-void main_test(IStrassenOp* op, bool isWorker=false) {
-    if (!isWorker) {
-        int total_tests = 0;
-        int passed_tests = 0;
+void main_test(IStrassenOp* op) {
+    int total_tests = 0;
+    int passed_tests = 0;
 
-        // TestCase 1
-        Matrix A1 = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
-        Matrix B1 = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
-        testcase(total_tests, passed_tests, op, "TestCase 1: 256x256 Matrix Multiplication", A1, B1);
+    // TestCase 1
+    Matrix A1 = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
+    Matrix B1 = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
+    testcase(total_tests, passed_tests, op, "TestCase 1: 256x256 Matrix Multiplication", A1, B1);
 
-    } else {
-        op->apply_strassen(Matrix(), Matrix(), isWorker);
-    }
+    // TestCase 2
+    Matrix A2 = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
+    Matrix B2 = read_matrix_from_csv("./test/test_case/medium_random_matrix_B_256x256.csv");
+    testcase(total_tests, passed_tests, op, "TestCase 2: 256x256 Random Matrix Multiplication", A2, B2);
+
+    // TestCase 3
+    Matrix A3 = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
+    Matrix C3 = read_matrix_from_csv("./test/test_case/medium_random_matrix_C_256x256.csv");
+    testcase(total_tests, passed_tests, op, "TestCase 3: 512x512 Random Matrix Multiplication", A3, C3);
 }
 
-
 int main() {
+    MPI_Init(nullptr, nullptr);
+    
+    int world_rank;
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
     IStrassenOp *op = new StrassenOpenMPI();
 
-    int initialized, world_rank, world_size;
-
-    MPI_Initialized(&initialized);
-    
-    if (!initialized) {
-        MPI_Init(nullptr, nullptr);
-    }
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    MPI_Comm parent;
-    MPI_Comm_get_parent(&parent);
-
-    if (parent == MPI_COMM_NULL) {
-        if (world_rank == 0) {
-            main_test(op);
-        }
+    if (world_rank == 0) {
+        main_test(op);
+        op->cleanup();
     } else {
-        main_test(op, true);
+        op->apply_strassen(Matrix(), Matrix());
     }
 
     delete op;
-
     MPI_Finalize();
-
     return 0;
-
 }
 

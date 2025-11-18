@@ -70,7 +70,7 @@ $(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
 	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
 
 # Strassen MPI test target
-NUM_PROCESSES := 1
+NUM_PROCESSES := 3
 STRASSEN_MPI_TEST_TARGET := strassen_worker_mpi
 STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
 MPICXX := mpic++

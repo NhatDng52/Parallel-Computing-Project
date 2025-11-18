@@ -1,473 +1,409 @@
-// #include "strassen_op.h"
-// #include <mpi.h>
-// #include <queue>
-// #include <vector>
-// #include <time.h>
-// #include "utils.h"
+#include "strassen_op.h"
+#include <mpi.h>
+#include <queue>
+#include "utils.h"
 
-// class StrassenOpenMPI : public IStrassenOp {
+class MPIUtils {
+    public:
+        static Matrix mat_add(const Matrix &A, const Matrix &B) {
+            if (A.empty() || B.empty() || A.size() != B.size() || A[0].size() != B[0].size()) {
+                throw runtime_error("Lỗi ma trận, trong phép toán mat_add strassen_op_omp");
+            }
 
-// private:
-//     const int THRESHOLD = 64;
-    
-//     struct Task {
-//         int task_id;
-//         Matrix A;
-//         Matrix B;
-//     };
-    
-//     struct WorkerState {
-//         int rank;
-//         bool busy;
-//         int current_task_id;
-//         MPI_Request send_req_A;
-//         MPI_Request send_req_B;
-//         MPI_Request recv_req;
-//         vector<double> recv_buffer;
-//         int recv_dims[2];
-//         MPI_Request recv_dims_req;
-//     };
+            int rows = A.size();
+            int cols = A[0].size();
 
-//     vector<double> flatten(const Matrix &A) {
-//         int rows = A.size();
-//         if (rows == 0) return vector<double>();
-//         int cols = A[0].size();
-//         vector<double> flat(rows * cols);
-//         for (int i = 0; i < rows; ++i) {
-//             for (int j = 0; j < cols; ++j) {
-//                 flat[i * cols + j] = A[i][j];
-//             }
-//         }
-//         return flat;
-//     }
+            Matrix C(rows, vector<double>(cols));
 
-//     Matrix unflatten(const vector<double> &flat, int rows, int cols) {
-//         Matrix A(rows, vector<double>(cols));
-//         for (int i = 0; i < rows; ++i) {
-//             for (int j = 0; j < cols; ++j) {
-//                 A[i][j] = flat[i * cols + j];
-//             }
-//         }
-//         return A;
-//     }
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                    C[i][j] = A[i][j] + B[i][j];
+                }
+            }
 
-//     void send_matrix_async(const Matrix &A, int dest, int tag, MPI_Comm comm, 
-//                           vector<double> &flat_buffer, MPI_Request &req) {
-//         int rows = A.size();
-//         int cols = (rows > 0) ? A[0].size() : 0;
-//         int dims[2] = {rows, cols};
+            return C;
+        }
         
-//         MPI_Send(dims, 2, MPI_INT, dest, tag, comm);
+        static Matrix mat_sub(const Matrix &A, const Matrix &B) {
+            if (A.empty() || B.empty() || A.size() != B.size() || A[0].size() != B[0].size()) {
+                throw runtime_error("Lỗi ma trận, trong phép toán mat_sub strassen_op_omp");
+            }
 
-//         if (rows > 0 && cols > 0) {
-//             flat_buffer = flatten(A);
-//             MPI_Isend(flat_buffer.data(), flat_buffer.size(), MPI_DOUBLE, dest, tag + 1, comm, &req);
-//         }
-//     }
+            int rows = A.size();
+            int cols = A[0].size();
 
-//     void send_matrix(const Matrix &A, int dest, int tag, MPI_Comm comm) {
-//         int rows = A.size();
-//         int cols = (rows > 0) ? A[0].size() : 0;
-//         int dims[2] = {rows, cols};
-        
-//         MPI_Send(dims, 2, MPI_INT, dest, tag, comm);
+            Matrix C(rows, vector<double>(cols));
 
-//         if (rows > 0 && cols > 0) {
-//             vector<double> flat = flatten(A);
-//             MPI_Send(flat.data(), flat.size(), MPI_DOUBLE, dest, tag + 1, comm);
-//         }
-//     }
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                    C[i][j] = A[i][j] - B[i][j];
+                }
+            }
 
-//     int next_power_of_two(int n) {
-//         if (n <= 0) return 1;
-//         if ((n & (n - 1)) == 0) return n;
-//         int power = 1;
-//         while (power < n) {
-//             power <<= 1;
-//         }
-//         return power;
-//     }
+            return C;
+        }
+        
+        static Matrix mat_mul_naive(const Matrix &A, const Matrix &B) {
+            // A(n x m) x B(m x k) -> C(n, k)
 
-//     Matrix recv_matrix(int source, int tag, MPI_Comm comm) {
-//         int dims[2];
-//         MPI_Status status;
-        
-//         MPI_Recv(dims, 2, MPI_INT, source, tag, comm, &status);
-        
-//         int rows = dims[0];
-//         int cols = dims[1];
+            if (A.empty() || B.empty() || A[0].size() != B.size()) {
+                throw runtime_error("Lỗi ma trận, trong phép toán mat_mul strassen_op_omp");
+            }
 
-//         if (rows == 0 || cols == 0) {
-//             return Matrix();
-//         }
+            int rows = A.size();
+            int cols = B[0].size();
+            int middleCos = A[0].size();
 
-//         vector<double> flat(rows * cols);
-//         MPI_Recv(flat.data(), flat.size(), MPI_DOUBLE, source, tag + 1, comm, &status);
-        
-//         return unflatten(flat, rows, cols);
-//     }
-    
-//     void start_recv_matrix_async(int source, int tag, MPI_Comm comm,
-//                                  int* dims_buffer, MPI_Request &dims_req) {
-//         MPI_Irecv(dims_buffer, 2, MPI_INT, source, tag, comm, &dims_req);
-//     }
-    
-//     Matrix complete_recv_matrix_async(int source, int tag, MPI_Comm comm,
-//                                       int* dims_buffer, MPI_Request &dims_req,
-//                                       vector<double> &data_buffer) {
-//         MPI_Status status;
-//         MPI_Wait(&dims_req, &status);
-        
-//         int rows = dims_buffer[0];
-//         int cols = dims_buffer[1];
-        
-//         if (rows == 0 || cols == 0) {
-//             return Matrix();
-//         }
-        
-//         data_buffer.resize(rows * cols);
-//         MPI_Recv(data_buffer.data(), data_buffer.size(), MPI_DOUBLE, source, tag + 1, comm, &status);
-        
-//         return unflatten(data_buffer, rows, cols);
-//     }
+            Matrix C(rows, vector<double> (cols));
 
-//     vector<Matrix> split_matrix(const Matrix &A) {
-//         int n = A.size();
-//         int mid = n / 2;
-//         Matrix A11(mid, vector<double>(mid));
-//         Matrix A12(mid, vector<double>(mid));
-//         Matrix A21(mid, vector<double>(mid));
-//         Matrix A22(mid, vector<double>(mid));
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                    for (int k = 0; k < middleCos; k++) {
+                        C[i][j] += A[i][k] * B[k][j];
+                    }
+                }
+            }
 
-//         for(int i=0; i<mid; ++i) {
-//             for(int j=0; j<mid; ++j) {
-//                 A11[i][j] = A[i][j];
-//                 A12[i][j] = A[i][j+mid];
-//                 A21[i][j] = A[i+mid][j];
-//                 A22[i][j] = A[i+mid][j+mid];
-//             }
-//         }
-//         return {A11, A12, A21, A22};
-//     }
+            return C;
+        }
 
-//     Matrix mat_add(const Matrix &A, const Matrix &B) {
-//         int n = A.size();
-//         Matrix C(n, vector<double>(n));
-//         for(int i=0; i<n; ++i) {
-//             for(int j=0; j<n; ++j) {
-//                 C[i][j] = A[i][j] + B[i][j];
-//             }
-//         }
-//         return C;
-//     }
-
-//     Matrix mat_sub(const Matrix &A, const Matrix &B) {
-//         int n = A.size();
-//         Matrix C(n, vector<double>(n));
-//         for(int i=0; i<n; ++i) {
-//             for(int j=0; j<n; ++j) {
-//                 C[i][j] = A[i][j] - B[i][j];
-//             }
-//         }
-//         return C;
-//     }
-
-//     Matrix mat_mul_naive(const Matrix &A, const Matrix &B) {
-//         int n = A.size();
-//         int m = A[0].size();
-//         int p = B[0].size();
-
-//         Matrix C(n, vector<double>(p, 0.0));
-//         for(int i=0; i<n; ++i) {
-//             for(int j=0; j<p; ++j) {
-//                 for(int k=0; k<m; ++k) {
-//                     C[i][j] += A[i][k] * B[k][j];
-//                 }
-//             }
-//         }
-//         return C;
-//     }
-
-//     Matrix padding(const Matrix &A, int new_size) {
-//         int old_rows = A.size();
-//         int old_cols = (old_rows > 0) ? A[0].size() : 0;
-//         Matrix A_padded(new_size, vector<double>(new_size, 0.0));
-//         for(int i=0; i<old_rows; ++i) {
-//             for(int j=0; j<old_cols; ++j) {
-//                 A_padded[i][j] = A[i][j];
-//             }
-//         }
-//         return A_padded;
-//     }
-    
-//     Matrix remove_padding(const Matrix &A, int original_rows, int original_cols) {
-//         Matrix A_trimmed(original_rows, vector<double>(original_cols));
-//         for(int i=0; i<original_rows; ++i) {
-//             for(int j=0; j<original_cols; ++j) {
-//                 A_trimmed[i][j] = A[i][j];
-//             }
-//         }
-//         return A_trimmed;
-//     }
-
-//     Matrix strassen_sequential(const Matrix &A, const Matrix &B) {
-//         int n = A.size();
-//         int m = A[0].size();
-//         int p = B[0].size();
-        
-//         if (n <= THRESHOLD) {
-//             return mat_mul_naive(A, B);
-//         }
-        
-//         int max_dim = max({n, m, p});
-//         int new_size = next_power_of_two(max_dim);
-        
-//         Matrix A_padded = padding(A, new_size);
-//         Matrix B_padded = padding(B, new_size);
-        
-//         vector<Matrix> As = split_matrix(A_padded);
-//         vector<Matrix> Bs = split_matrix(B_padded);
-//         Matrix A11=As[0], A12=As[1], A21=As[2], A22=As[3];
-//         Matrix B11=Bs[0], B12=Bs[1], B21=Bs[2], B22=Bs[3];
-        
-//         Matrix S1 = mat_sub(B12, B22);
-//         Matrix S2 = mat_add(A11, A12);
-//         Matrix S3 = mat_add(A21, A22);
-//         Matrix S4 = mat_sub(B21, B11);
-//         Matrix S5 = mat_add(A11, A22);
-//         Matrix S6 = mat_add(B11, B22);
-//         Matrix S7 = mat_sub(A12, A22);
-//         Matrix S8 = mat_add(B21, B22);
-//         Matrix S9 = mat_sub(A11, A21);
-//         Matrix S10 = mat_add(B11, B12);
-        
-//         Matrix M1 = strassen_sequential(A11, S1);
-//         Matrix M2 = strassen_sequential(S2, B22);
-//         Matrix M3 = strassen_sequential(S3, B11);
-//         Matrix M4 = strassen_sequential(A22, S4);
-//         Matrix M5 = strassen_sequential(S5, S6);
-//         Matrix M6 = strassen_sequential(S7, S8);
-//         Matrix M7 = strassen_sequential(S9, S10);
-        
-//         Matrix C11 = mat_add(mat_sub(mat_add(M5, M4), M2), M6);
-//         Matrix C12 = mat_add(M1, M2);
-//         Matrix C21 = mat_add(M3, M4);
-//         Matrix C22 = mat_add(mat_sub(mat_add(M5, M1), M3), M7);
-        
-//         int mid = new_size / 2;
-//         Matrix C_padded(new_size, vector<double>(new_size));
-//         for(int i=0; i<mid; ++i) {
-//             for(int j=0; j<mid; ++j) {
-//                 C_padded[i][j] = C11[i][j];
-//                 C_padded[i][j+mid] = C12[i][j];
-//                 C_padded[i+mid][j] = C21[i][j];
-//                 C_padded[i+mid][j+mid] = C22[i][j];
-//             }
-//         }
-        
-//         return remove_padding(C_padded, n, p);
-//     }
-
-//     Matrix master_distribute(const Matrix &A, const Matrix &B, int world_size) {
-        
-//         vector<Matrix> As = split_matrix(A);
-//         vector<Matrix> Bs = split_matrix(B);
-//         Matrix A11=As[0], A12=As[1], A21=As[2], A22=As[3];
-//         Matrix B11=Bs[0], B12=Bs[1], B21=Bs[2], B22=Bs[3];
-
-//         Matrix S1 = mat_sub(B12, B22);
-//         Matrix S2 = mat_add(A11, A12);
-//         Matrix S3 = mat_add(A21, A22);
-//         Matrix S4 = mat_sub(B21, B11);
-//         Matrix S5 = mat_add(A11, A22);
-//         Matrix S6 = mat_add(B11, B22);
-//         Matrix S7 = mat_sub(A12, A22);
-//         Matrix S8 = mat_add(B21, B22);
-//         Matrix S9 = mat_sub(A11, A21);
-//         Matrix S10 = mat_add(B11, B12);
-
-//         vector<Task> tasks(7);
-//         tasks[0] = {0, A11, S1};
-//         tasks[1] = {1, S2, B22};  
-//         tasks[2] = {2, S3, B11};  
-//         tasks[3] = {3, A22, S4};  
-//         tasks[4] = {4, S5, S6};   
-//         tasks[5] = {5, S7, S8};   
-//         tasks[6] = {6, S9, S10};  
-        
-//         vector<Matrix> M_results(7);
-//         int num_workers = world_size - 1;
-        
-//         if (num_workers == 0) {
-//             for (int i = 0; i < 7; ++i) {
-//                 M_results[i] = strassen_sequential(tasks[i].A, tasks[i].B);
-//             }
-//         } else {
-//             queue<Task> task_queue;
-//             for (auto &task : tasks) {
-//                 task_queue.push(task);
-//             }
+        static int next_power_of_two(int n) {
             
-//             vector<WorkerState> workers(num_workers);
-//             for (int i = 0; i < num_workers; ++i) {
-//                 workers[i].rank = i + 1;
-//                 workers[i].busy = false;
-//                 workers[i].current_task_id = -1;
-//             }
+            if (n <= 0) return 1;
+
+            if ((n & (n - 1)) == 0) return n;
             
-//             vector<vector<double>> send_buffers_A(num_workers);
-//             vector<vector<double>> send_buffers_B(num_workers);
+            int power = 1;
             
-//             int tasks_completed = 0;
+            while (power < n) {
+                power <<= 1;
+            }
             
-//             while (tasks_completed < 7) {
-//                 // Assign tasks to idle workers
-//                 for (int i = 0; i < num_workers && !task_queue.empty(); ++i) {
-//                     if (!workers[i].busy) {
-//                         Task task = task_queue.front();
-//                         task_queue.pop();
-                        
-//                         workers[i].busy = true;
-//                         workers[i].current_task_id = task.task_id;
-                        
-//                         send_matrix(task.A, workers[i].rank, 10, MPI_COMM_WORLD);
-//                         send_matrix(task.B, workers[i].rank, 20, MPI_COMM_WORLD);
-                        
-//                         start_recv_matrix_async(workers[i].rank, 30, MPI_COMM_WORLD,
-//                                               workers[i].recv_dims, workers[i].recv_dims_req);
-//                     }
-//                 }
+            return power;
+        }
+
+        static vector<Matrix> divide_mat(const Matrix &A) {
+            int mat_size = A.size();
+
+            if (mat_size == 1) {
+                return {A};
+            } else {
+                int sub_size = mat_size / 2;
+                Matrix A11(sub_size, vector<double>(sub_size));
+                Matrix A12(sub_size, vector<double>(sub_size));
+                Matrix A21(sub_size, vector<double>(sub_size));
+                Matrix A22(sub_size, vector<double>(sub_size));
+
+                for (int i = 0; i < sub_size; i++) {
+                    for (int j = 0; j < sub_size; j++) {
+                        A11[i][j] = A[i][j];
+                        A12[i][j] = A[i][j+sub_size];
+                        A21[i][j] = A[i+sub_size][j];
+                        A22[i][j] = A[i+sub_size][j+sub_size];
+                    }
+                }
+
+                return {A11, A12, A21, A22};
+            }
+        }
+
+        static Matrix padding(const Matrix &A, int new_size) {
+            
+            int old_rows = A.size();
+            int old_cols = (old_rows > 0) ? A[0].size() : 0;
+            Matrix A_padded(new_size, vector<double>(new_size, 0.0));
+
+            for(int i=0; i<old_rows; ++i) {
+                for(int j=0; j<old_cols; ++j) {
+                    A_padded[i][j] = A[i][j];
+                }
+            }
+            return A_padded;
+        }
+
+        static Matrix remove_padding(const Matrix &A, int original_rows, int original_cols) {
+            Matrix A_trimmed(original_rows, vector<double>(original_cols));
+            for(int i=0; i<original_rows; ++i) {
+                for(int j=0; j<original_cols; ++j) {
+                    A_trimmed[i][j] = A[i][j];
+                }
+            }
+            return A_trimmed;
+        }
+
+        static vector<double> flatten(const Matrix &A) {
+            int rows = A.size();
+            if (rows == 0) return vector<double>();
+            int cols = A[0].size();
+            vector<double> flat(rows * cols);
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < cols; ++j) {
+                    flat[i * cols + j] = A[i][j];
+                }
+            }
+            return flat;
+        }
+
+        static Matrix unflatten(const vector<double> &flat, int rows, int cols) {
+            Matrix A(rows, vector<double>(cols));
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < cols; ++j) {
+                    A[i][j] = flat[i * cols + j];
+                }
+            }
+            return A;
+        }
+    };
+
+struct Task {
+    Matrix A;
+    Matrix B;
+    int task_id;
+};
+
+class StrassenOpenMPI : public IStrassenOp {
+    private:
+        const int THRESHOLD = 64;
+        MPI_Comm global_comm = MPI_COMM_WORLD;
+        int world_rank;
+        int world_size;
+
+        void get_mpi_info() {
+            MPI_Comm_rank(global_comm, &world_rank);
+            MPI_Comm_size(global_comm, &world_size);
+        }
+
+        vector<Task> distribute_matrix(const Matrix &A, const Matrix &B) {
+            vector<Matrix> As = MPIUtils::divide_mat(A);
+            vector<Matrix> Bs = MPIUtils::divide_mat(B);
+            Matrix A11=As[0], A12=As[1], A21=As[2], A22=As[3];
+            Matrix B11=Bs[0], B12=Bs[1], B21=Bs[2], B22=Bs[3];
+
+            Matrix S1 = MPIUtils::mat_add(A11, A22); // M1
+            Matrix S2 = MPIUtils::mat_add(B11, B22); // M1
+            Matrix S3 = MPIUtils::mat_add(A21, A22); // M2
+            Matrix S4 = MPIUtils::mat_sub(B12, B22); // M3
+            Matrix S5 = MPIUtils::mat_sub(B21, B11); // M4
+            Matrix S6 = MPIUtils::mat_add(A11, A12); // M5
+            Matrix S7 = MPIUtils::mat_sub(A21, A11); // M6
+            Matrix S8 = MPIUtils::mat_add(B11, B12); // M6
+            Matrix S9 = MPIUtils::mat_sub(A12, A22); // M7
+            Matrix S10 = MPIUtils::mat_add(B21, B22); // M7
+
+            return {
+                {S1, S2, 0}, // M1
+                {S3, B11, 1}, // M2
+                {A11, S4, 2}, // M3
+                {A22, S5, 3}, // M4
+                {S6, B22, 4}, // M5
+                {S7, S8, 5}, // M6
+                {S9, S10, 6}  // M7
+            };
+        }
+
+        Matrix strassen_recursive(const Matrix &A, const Matrix &B) {
+            int n = A.size();
+
+            if (n <= THRESHOLD) {
+                return MPIUtils::mat_mul_naive(A, B);
+            }
+
+            vector<Matrix> As = MPIUtils::divide_mat(A);
+            vector<Matrix> Bs = MPIUtils::divide_mat(B);
+            Matrix A11=As[0], A12=As[1], A21=As[2], A22=As[3];
+            Matrix B11=Bs[0], B12=Bs[1], B21=Bs[2], B22=Bs[3];
+
+            Matrix S1 = MPIUtils::mat_add(A11, A22); // M1
+            Matrix S2 = MPIUtils::mat_add(B11, B22); // M1
+            Matrix S3 = MPIUtils::mat_add(A21, A22); // M2
+            Matrix S4 = MPIUtils::mat_sub(B12, B22); // M3
+            Matrix S5 = MPIUtils::mat_sub(B21, B11); // M4
+            Matrix S6 = MPIUtils::mat_add(A11, A12); // M5
+            Matrix S7 = MPIUtils::mat_sub(A21, A11); // M6
+            Matrix S8 = MPIUtils::mat_add(B11, B12); // M6
+            Matrix S9 = MPIUtils::mat_sub(A12, A22); // M7
+            Matrix S10 = MPIUtils::mat_add(B21, B22); // M7
+
+            Matrix M1 = strassen_recursive(S1, S2);
+            Matrix M2 = strassen_recursive(S3, B11);
+            Matrix M3 = strassen_recursive(A11, S4);
+            Matrix M4 = strassen_recursive(A22, S5);
+            Matrix M5 = strassen_recursive(S6, B22);
+            Matrix M6 = strassen_recursive(S7, S8);
+            Matrix M7 = strassen_recursive(S9, S10);
+
+            Matrix C11 = MPIUtils::mat_add(MPIUtils::mat_sub(MPIUtils::mat_add(M1, M4), M5), M7);
+            Matrix C12 = MPIUtils::mat_add(M3, M5);
+            Matrix C21 = MPIUtils::mat_add(M2, M4);
+            Matrix C22 = MPIUtils::mat_add(MPIUtils::mat_sub(MPIUtils::mat_add(M1, M3), M2), M6);
+
+            int new_size = C11.size();
+            Matrix C(n, vector<double>(n));
+            for (int i = 0; i < new_size; i++) {
+                for (int j = 0; j < new_size; j++) {
+                    C[i][j] = C11[i][j];
+                    C[i][j + new_size] = C12[i][j];
+                    C[i + new_size][j] = C21[i][j];
+                    C[i + new_size][j + new_size] = C22[i][j];
+                }
+            }
+            return C;
+        }
+
+        Matrix master_process(const Matrix &A, const Matrix &B) {
+            vector<Task> tasks = distribute_matrix(A, B);
+            vector<Matrix> M(7);
+            
+            // Calculate how many workers we have (excluding master which is rank 0)
+            int num_workers = world_size - 1;
+            
+            // Send tasks to available workers only
+            for (size_t i = 1; i < tasks.size() && i <= (size_t)num_workers; ++i) {
+                vector<double> flat_A = MPIUtils::flatten(tasks[i].A);
+                vector<double> flat_B = MPIUtils::flatten(tasks[i].B);
+
+                int rows_A = tasks[i].A.size();
+                int cols_A = tasks[i].A[0].size();
+                int rows_B = tasks[i].B.size();
+                int cols_B = tasks[i].B[0].size();
+
+                MPI_Send(&rows_A, 1, MPI_INT, i, 0, global_comm);
+                MPI_Send(&cols_A, 1, MPI_INT, i, 0, global_comm);
+                MPI_Send(&rows_B, 1, MPI_INT, i, 0, global_comm);
+                MPI_Send(&cols_B, 1, MPI_INT, i, 0, global_comm);
+                MPI_Send(flat_A.data(), rows_A * cols_A, MPI_DOUBLE, i, 0, global_comm);
+                MPI_Send(flat_B.data(), rows_B * cols_B, MPI_DOUBLE, i, 0, global_comm);
+            }
+
+            // Master computes task 0 and any tasks beyond available workers
+            M[0] = strassen_recursive(tasks[0].A, tasks[0].B);
+            for (size_t i = num_workers + 1; i < tasks.size(); ++i) {
+                M[i] = strassen_recursive(tasks[i].A, tasks[i].B);
+            }
+            
+            // Receive results from workers
+            for (size_t i = 1; i < tasks.size() && i <= (size_t)num_workers; ++i) {
+                int rows_M, cols_M;
+                MPI_Recv(&rows_M, 1, MPI_INT, i, 0, global_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&cols_M, 1, MPI_INT, i, 0, global_comm, MPI_STATUS_IGNORE);
+                vector<double> flat_M(rows_M * cols_M);
+                MPI_Recv(flat_M.data(), rows_M * cols_M, MPI_DOUBLE, i, 0, global_comm, MPI_STATUS_IGNORE);
+                M[i] = MPIUtils::unflatten(flat_M, rows_M, cols_M);
+            }
+
+            // Don't send termination here - workers should stay alive for multiple operations
+
+            Matrix C11 = MPIUtils::mat_add(MPIUtils::mat_sub(MPIUtils::mat_add(M[0], M[3]), M[4]), M[6]);
+            Matrix C12 = MPIUtils::mat_add(M[2], M[4]);
+            Matrix C21 = MPIUtils::mat_add(M[1], M[3]);
+            Matrix C22 = MPIUtils::mat_add(MPIUtils::mat_sub(MPIUtils::mat_add(M[0], M[2]), M[1]), M[5]);
+
+            int new_size = C11.size();
+            Matrix C(A.size(), vector<double>(B[0].size()));
+            for (int i = 0; i < new_size; i++) {
+                for (int j = 0; j < new_size; j++) {
+                    C[i][j] = C11[i][j];
+                    C[i][j + new_size] = C12[i][j];
+                    C[i + new_size][j] = C21[i][j];
+                    C[i + new_size][j + new_size] = C22[i][j];
+                }
+            }
+
+            return C;
+        }
+
+        void worker_process() {
+            while (true) {
+                int rows_A, cols_A, rows_B, cols_B;
+                MPI_Recv(&rows_A, 1, MPI_INT, 0, 0, global_comm, MPI_STATUS_IGNORE);
                 
-//                 // Check for completed tasks
-//                 bool any_completed = false;
-//                 for (int i = 0; i < num_workers; ++i) {
-//                     if (workers[i].busy) {
-//                         int flag;
-//                         MPI_Status status;
-//                         MPI_Test(&workers[i].recv_dims_req, &flag, &status);
-                        
-//                         if (flag) {
-//                             Matrix result = complete_recv_matrix_async(
-//                                 workers[i].rank, 30, MPI_COMM_WORLD,
-//                                 workers[i].recv_dims, workers[i].recv_dims_req,
-//                                 workers[i].recv_buffer
-//                             );
-                            
-//                             M_results[workers[i].current_task_id] = result;
-//                             workers[i].busy = false;
-//                             tasks_completed++;
-//                             any_completed = true;
-//                         }
-//                     }
-//                 }
+                // Check for termination signal
+                if (rows_A == -1) {
+                    break;
+                }
                 
-//                 // Small sleep to prevent busy waiting
-//                 if (!any_completed && tasks_completed < 7) {
-//                     struct timespec ts;
-//                     ts.tv_sec = 0;
-//                     ts.tv_nsec = 1000000; // 1ms
-//                     nanosleep(&ts, NULL);
-//                 }
-//             }
+                MPI_Recv(&cols_A, 1, MPI_INT, 0, 0, global_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&rows_B, 1, MPI_INT, 0, 0, global_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&cols_B, 1, MPI_INT, 0, 0, global_comm, MPI_STATUS_IGNORE);
+
+                vector<double> flat_A(rows_A * cols_A);
+                vector<double> flat_B(rows_B * cols_B);
+                MPI_Recv(flat_A.data(), rows_A * cols_A, MPI_DOUBLE, 0, 0, global_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(flat_B.data(), rows_B * cols_B, MPI_DOUBLE, 0, 0, global_comm, MPI_STATUS_IGNORE);
+
+                Matrix A = MPIUtils::unflatten(flat_A, rows_A, cols_A);
+                Matrix B = MPIUtils::unflatten(flat_B, rows_B, cols_B);
+
+                Matrix M = strassen_recursive(A, B);
+
+                vector<double> flat_M = MPIUtils::flatten(M);
+                int rows_M = M.size();
+                int cols_M = M[0].size();
+
+                MPI_Send(&rows_M, 1, MPI_INT, 0, 0, global_comm);
+                MPI_Send(&cols_M, 1, MPI_INT, 0, 0, global_comm);
+                MPI_Send(flat_M.data(), rows_M * cols_M, MPI_DOUBLE, 0, 0, global_comm);
+            }
+        }
+
+        Matrix mpi_strassen(const Matrix &A, const Matrix &B) {
+            // Handle empty matrices for worker processes
+            if (A.empty() || B.empty()) {
+                if (world_rank != 0) {
+                    worker_process();
+                }
+                return Matrix();
+            }
             
-//             // Send termination signal to all workers
-//             for (int i = 1; i < world_size; ++i) {
-//                 send_matrix(Matrix(), i, 10, MPI_COMM_WORLD);
-//             }
-//         }
+            int n = max({A.size(), A[0].size(), B.size(), B[0].size()});
+            int m = MPIUtils::next_power_of_two(n);
 
-//         Matrix M1=M_results[0], M2=M_results[1], M3=M_results[2], M4=M_results[3], 
-//                M5=M_results[4], M6=M_results[5], M7=M_results[6];
+            Matrix A_padded = MPIUtils::padding(A, m);
+            Matrix B_padded = MPIUtils::padding(B, m);
+            Matrix C_padded;
 
-//         Matrix C11 = mat_add(mat_sub(mat_add(M5, M4), M2), M6);
-//         Matrix C12 = mat_add(M1, M2);
-//         Matrix C21 = mat_add(M3, M4);
-//         Matrix C22 = mat_add(mat_sub(mat_add(M5, M1), M3), M7);
+            if (world_rank == 0) {
+                C_padded = master_process(A_padded, B_padded);
+            } else {
+                worker_process();
+            }
 
-//         int mid = A.size() / 2;
-//         Matrix C(A.size(), vector<double>(A.size()));
-//         for(int i=0; i<mid; ++i) {
-//             for(int j=0; j<mid; ++j) {
-//                 C[i][j] = C11[i][j];
-//                 C[i][j+mid] = C12[i][j];
-//                 C[i+mid][j] = C21[i][j];
-//                 C[i+mid][j+mid] = C22[i][j];
-//             }
-//         }
-//         return C;
-//     }
+            Matrix C = MPIUtils::remove_padding(C_padded, A.size(), B[0].size());
+            return C;
+        }
 
-//     void worker_compute() {
-//         // Process tasks until receiving termination signal
-//         while (true) {
-//             Matrix A_con = recv_matrix(0, 10, MPI_COMM_WORLD);
+    public:
+        Matrix apply_strassen(const Matrix &A, const Matrix &B) override {
+            int initialized;
+            MPI_Initialized(&initialized);
             
-//             if (A_con.empty()) {
-//                 // Termination signal - exit this batch
-//                 break;
-//             }
+            bool should_finalize = false;
+
+            if (!initialized) {
+                MPI_Init(nullptr, nullptr);
+                should_finalize = true;
+            }
+
+            get_mpi_info();
             
-//             Matrix B_con = recv_matrix(0, 20, MPI_COMM_WORLD);
-//             Matrix M_result = strassen_sequential(A_con, B_con);
-//             send_matrix(M_result, 0, 30, MPI_COMM_WORLD);
-//         }
-//     }
-
-//     Matrix strassen_implementation(const Matrix &A, const Matrix &B) {
-//         int rank, world_size;
-//         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-//         Matrix C_final;
-
-//         if (rank == 0) {
-//             int original_rows = A.size();
-//             int original_cols = (B.empty() ? 0 : B[0].size());
+            Matrix result = mpi_strassen(A, B);
             
-//             int max_size_to_pad = max({A.size(), (A.empty() ? 0 : A[0].size()), B.size(), (B.empty() ? 0 : B[0].size())});
-
-//             if (max_size_to_pad <= THRESHOLD) {
-//                 return mat_mul_naive(A, B);
-//             }
-
-//             max_size_to_pad = next_power_of_two(max_size_to_pad);
-//             Matrix A_padded = padding(A, max_size_to_pad);
-//             Matrix B_padded = padding(B, max_size_to_pad);
-
-//             Matrix C_padded = master_distribute(A_padded, B_padded, world_size);
+            if (should_finalize) {
+                MPI_Finalize();
+            }
             
-//             C_final = remove_padding(C_padded, original_rows, original_cols);
-
-//         } else {
-//             // Worker process: process one task at a time
-//             worker_compute();
-//         } 
-
-//         return C_final;
-//     }
-
-// public:
-//     Matrix apply_strassen(const Matrix &A, const Matrix &B, bool isWorker = false) override {
-//         (void)isWorker; // Suppress unused parameter warning
+            return result;
+        }
         
-//         int initialized;
-//         MPI_Initialized(&initialized);
-        
-//         bool should_finalize = false;
-
-//         if (!initialized) {
-//             int argc = 0;
-//             char** argv = nullptr;
-//             MPI_Init(&argc, &argv);
-//             should_finalize = true;
-//         }
-        
-//         Matrix result = strassen_implementation(A, B);
-        
-//         if (should_finalize) {
-//             MPI_Finalize();
-//         }
-        
-//         return result;
-//     }
-// };
+        void cleanup() override {
+            get_mpi_info();
+            if (world_rank == 0) {
+                // Send termination signal to all workers
+                int num_workers = world_size - 1;
+                for (int i = 1; i <= num_workers; ++i) {
+                    int terminate = -1;
+                    MPI_Send(&terminate, 1, MPI_INT, i, 0, global_comm);
+                }
+            }
+        }
+};
