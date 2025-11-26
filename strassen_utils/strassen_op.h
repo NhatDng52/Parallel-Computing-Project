@@ -5,6 +5,8 @@
 #include<iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
+#include <vector>
 
 using namespace std;
 using Matrix = vector<vector<double>>;
@@ -14,10 +16,10 @@ class IStrassenOp {
         virtual Matrix apply_strassen(const Matrix &A, const Matrix &B) = 0;
         virtual void cleanup() {}
         virtual ~IStrassenOp() = default;
+        virtual Matrix apply_strassen(const Matrix &A, const Matrix &B) = 0;
 };
 
-
-//Naive strassen utils
+// Naive strassen utils
 Matrix strassen_recursive(const Matrix &A, const Matrix &B);
 Matrix padding(const Matrix &A);
 vector<Matrix> separate_mat(const Matrix &A);

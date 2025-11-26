@@ -1,3 +1,11 @@
+#include "../strassen_utils/strassen_op.h"
+#include "../strassen_utils/strassen_openmp.cpp"
+#include "../utils.cpp"
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <iomanip>
@@ -46,7 +54,7 @@ Matrix ground_truth_mul(const Matrix& A, const Matrix& B) {
             }
         }
     }
-    
+
     return C;
 }
 
@@ -56,13 +64,13 @@ int main() {
 
     // Matrix A = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
     // Matrix B = read_matrix_from_csv("./test/test_case/medium_random_matrix_B_256x256.csv");
-    
+
     // Matrix A = read_matrix_from_csv("./test/test_case/matrix_3x4.csv");
     // Matrix B = read_matrix_from_csv("./test/test_case/matrix_4x2.csv");
 
     Matrix A = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
     Matrix B = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
-    
+
     cout << "\nTesting Mul Strassen...\n";
     auto C_strassen_op = op->apply_strassen(A, B);
     auto C_strassen_expected = ground_truth_mul(A, B);
@@ -71,10 +79,7 @@ int main() {
     cout << "-----------------------------------------\n";
     print_matrix(C_strassen_expected);
 
-    cout << "Strassen Mul OK? " 
-        << (compare_matrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") 
-        << "\n";
+    cout << "Strassen Mul OK? " << (compare_matrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") << "\n";
 
     return 0;
 }
-

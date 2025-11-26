@@ -3,7 +3,7 @@
 
 class StrassenOpenMP : public IStrassenOp {
     private:
-        const int THRESHOLD = 1;
+        const int THRESHOLD = 32;
 
         vector<Matrix> divide_mat(const Matrix &A) {
             int mat_size = A.size();
