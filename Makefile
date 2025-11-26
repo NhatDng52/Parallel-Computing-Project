@@ -72,9 +72,6 @@ STRASSEN_OMP_OBJS := test/correctness_test.o test/performance_test.o test/scalab
                      matmul_algorithms/matmul_naive.o utils.o
 
 omp_test: $(STRASSEN_OMP_TEST_TARGET)
-	@echo "========================================="
-	@echo "Running Strassen OpenMP Tests..."
-	@echo "========================================="
 	./$(STRASSEN_OMP_TEST_TARGET)
 
 $(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(STRASSEN_OMP_OBJS)
