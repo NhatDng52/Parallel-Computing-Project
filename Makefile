@@ -13,10 +13,10 @@
 #   you'll need a different project file or use MSYS/Mingw make.
 # End of header comments
 
-CXX := g++
-CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -I. -Imatmul_algorithms -Itest
-LDFLAGS :=
-LDLIBS :=
+CXX := mpic++
+CXXFLAGS := -std=c++23 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wfloat-equal -Wundef -Wswitch-enum -Wformat=2 -Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual -fopenmp -I. -Imatmul_algorithms -Itest -Istrassen_utils
+LDFLAGS := -fopenmp
+LDLIBS := -lmpi
 
 # sources (root, matmul_algorithms, test)
 SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp) $(wildcard strassen_utils/*.cpp)
@@ -25,7 +25,7 @@ DEPS := $(SRCS:.cpp=.d)
 
 TARGET := parallel_app
 
-.PHONY: all clean run debug help
+.PHONY: all clean run mpirun debug help strassen_test hybrid_test
 
 all: $(TARGET)
 
@@ -40,22 +40,29 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
+
+# MPI run target
+NP := 4
+mpirun: $(TARGET)
+	mpirun -np $(NP) ./$(TARGET)
 
 debug: CXXFLAGS += -g -O0
 debug: clean all
 
 help:
 	@echo "Makefile targets:"
-	@echo "  make        - build release executable ($(TARGET))"
+	@echo "  make        - build release executable ($(TARGET)) with MPI+OpenMP support"
 	@echo "  make debug  - build with debug symbols"
 	@echo "  make clean  - remove objects, deps and executable"
 	@echo "  make run    - run the produced executable"
+	@echo "  make mpirun - run with MPI (4 processes by default, set NP=n to change)"
 	@echo "  make strassen_test - build and run Strassen OpenMP test"
-	@echo "Notes: set CXX to change compiler, e.g. 'make CXX=clang++'"
+	@echo "  make hybrid_test - build and run Strassen Hybrid (MPI+OpenMP) test"
+	@echo "Notes: Uses mpic++ compiler with OpenMP and MPI support"
 
 # Strassen omp test target
 NUM_THREADS := 4
@@ -67,3 +74,14 @@ strassen_test: $(STRASSEN_OMP_TEST_TARGET)
 
 $(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
 	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
+
+# Strassen hybrid test target
+STRASSEN_HYBRID_TEST_TARGET := strassen_test_app_hybrid
+STRASSEN_HYBRID_TEST_SRC := test/test_strassen/test_hybrid.cpp
+HYBRID_NP := 4
+
+hybrid_test: $(STRASSEN_HYBRID_TEST_TARGET)
+	OMP_NUM_THREADS=$(NUM_THREADS) mpirun -np $(HYBRID_NP) ./$(STRASSEN_HYBRID_TEST_TARGET)
+
+$(STRASSEN_HYBRID_TEST_TARGET): $(STRASSEN_HYBRID_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
