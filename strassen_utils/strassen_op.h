@@ -16,7 +16,6 @@ class IStrassenOp {
         virtual Matrix apply_strassen(const Matrix &A, const Matrix &B) = 0;
         virtual void cleanup() {}
         virtual ~IStrassenOp() = default;
-        virtual Matrix apply_strassen(const Matrix &A, const Matrix &B) = 0;
 };
 
 // Naive strassen utils

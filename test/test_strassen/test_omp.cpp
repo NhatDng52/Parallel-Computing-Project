@@ -1,85 +1,114 @@
-#include "../strassen_utils/strassen_op.h"
-#include "../strassen_utils/strassen_openmp.cpp"
-#include "../utils.cpp"
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
-#include <ctime>
-#include <iomanip>
+#include "strassen_utils/strassen_op.h"
+#include "strassen_utils/strassen_openmp.h"
+#include "utils.h"
+#include "correctness_test.h"
+#include "performance_test.h"
+#include "scalability_test.h"
 #include <iostream>
-#include <vector>
 #include <iomanip>
-#include <cstdlib> 
-#include <ctime>   
-#include <algorithm>
-#include <cmath>  
-#include "strassen_utils/strassen_open_mp.cpp"
-#include "utils.cpp"
+#include <omp.h>
 
 using namespace std;
 
-Matrix ground_truth_add(const Matrix& A, const Matrix& B) {
-    int N = A.size();
-    Matrix C(N, vector<double>(N));
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            C[i][j] = A[i][j] + B[i][j];
-    return C;
+vector<vector<double>> strassen_openmp_wrapper(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+    static StrassenOpenMP op;
+    return op.apply_strassen(A, B);
 }
 
-Matrix ground_truth_sub(const Matrix& A, const Matrix& B) {
-    int N = A.size();
-    Matrix C(N, vector<double>(N));
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            C[i][j] = A[i][j] - B[i][j];
-    return C;
+void run_correctness_tests() {
+    cout << "\n========================================" << endl;
+    cout << "  CORRECTNESS TESTS - Strassen OpenMP  " << endl;
+    cout << "========================================\n" << endl;
+    
+    test_correctness(strassen_openmp_wrapper);
+    
+    cout << "\n✓ All correctness tests passed!\n" << endl;
 }
 
-Matrix ground_truth_mul(const Matrix& A, const Matrix& B) {
-    if (A.empty() || B.empty() || A[0].size() != B.size()) {
-        throw std::runtime_error("Lỗi kích thước ma trận: Số cột của A không bằng số hàng của B.");
-    }
+void run_performance_tests() {
+    cout << "\n========================================" << endl;
+    cout << "  PERFORMANCE TESTS - Strassen OpenMP  " << endl;
+    cout << "========================================\n" << endl;
+    
+    test_performance(strassen_openmp_wrapper);
+    
+    cout << "\n✓ Performance tests completed!\n" << endl;
+}
 
-    int rows = A.size();       
-    int cols = B[0].size();    
-    int middleDim = A[0].size();
+// Scalability tests for Strassen OpenMP
+void run_scalability_tests() {
+    cout << "\n========================================" << endl;
+    cout << "  SCALABILITY TESTS - Strassen OpenMP  " << endl;
+    cout << "========================================\n" << endl;
+    
+    test_scalability_OpenMP(strassen_openmp_wrapper);
+    
+    cout << "\n✓ Scalability tests completed!\n" << endl;
+}
 
-    Matrix C(rows, std::vector<double>(cols, 0.0));
-
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            for (int k = 0; k < middleDim; ++k) {
-                C[i][j] += A[i][k] * B[k][j];
-            }
+// Main test runner
+int main(int argc, char* argv[]) {
+    cout << "\n╔════════════════════════════════════════╗" << endl;
+    cout << "║  Strassen Algorithm - OpenMP Testing  ║" << endl;
+    cout << "╚════════════════════════════════════════╝\n" << endl;
+    
+    // Show OpenMP configuration
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            cout << "OpenMP Configuration:" << endl;
+            cout << "  Max threads available: " << omp_get_max_threads() << endl;
+            cout << "  Number of processors: " << omp_get_num_procs() << endl;
         }
     }
-
-    return C;
-}
-
-int main() {
-    srand(static_cast<unsigned>(time(0)));
-    IStrassenOp* op = new StrassenOpenMP();
-
-    // Matrix A = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
-    // Matrix B = read_matrix_from_csv("./test/test_case/medium_random_matrix_B_256x256.csv");
-
-    // Matrix A = read_matrix_from_csv("./test/test_case/matrix_3x4.csv");
-    // Matrix B = read_matrix_from_csv("./test/test_case/matrix_4x2.csv");
-
-    Matrix A = read_matrix_from_csv("./test/test_case/medium_negative_matrix_256x256.csv");
-    Matrix B = read_matrix_from_csv("./test/test_case/medium_positive_matrix_256x256.csv");
-
-    cout << "\nTesting Mul Strassen...\n";
-    auto C_strassen_op = op->apply_strassen(A, B);
-    auto C_strassen_expected = ground_truth_mul(A, B);
-
-    print_matrix(C_strassen_op);
-    cout << "-----------------------------------------\n";
-    print_matrix(C_strassen_expected);
-
-    cout << "Strassen Mul OK? " << (compare_matrices(C_strassen_op, C_strassen_expected) ? "YES" : "NO") << "\n";
-
+    
+    // Parse command line arguments
+    bool run_all = (argc == 1);
+    bool run_correct = false;
+    bool run_perf = false;
+    bool run_scale = false;
+    
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg == "--correctness" || arg == "-c") run_correct = true;
+        else if (arg == "--performance" || arg == "-p") run_perf = true;
+        else if (arg == "--scalability" || arg == "-s") run_scale = true;
+        else if (arg == "--all" || arg == "-a") run_all = true;
+        else if (arg == "--help" || arg == "-h") {
+            cout << "\nUsage: " << argv[0] << " [options]" << endl;
+            cout << "Options:" << endl;
+            cout << "  -c, --correctness    Run correctness tests" << endl;
+            cout << "  -p, --performance    Run performance tests" << endl;
+            cout << "  -s, --scalability    Run scalability tests" << endl;
+            cout << "  -a, --all            Run all tests (default)" << endl;
+            cout << "  -h, --help           Show this help message" << endl;
+            return 0;
+        }
+    }
+    
+    // Run selected tests
+    try {
+        if (run_all || run_correct) {
+            run_correctness_tests();
+        }
+        
+        if (run_all || run_perf) {
+            run_performance_tests();
+        }
+        
+        if (run_all || run_scale) {
+            run_scalability_tests();
+        }
+        
+        cout << "\n╔════════════════════════════════════════╗" << endl;
+        cout << "║     All Tests Completed Successfully  ║" << endl;
+        cout << "╚════════════════════════════════════════╝\n" << endl;
+        
+    } catch (const exception& e) {
+        cerr << "\n❌ ERROR: " << e.what() << endl;
+        return 1;
+    }
+    
     return 0;
 }
