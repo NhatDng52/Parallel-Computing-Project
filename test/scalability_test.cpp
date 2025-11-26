@@ -116,8 +116,55 @@ void test_scalability_OpenMP(vector<std::vector<double>> (*matrix_mult)(const ve
 }
 
 void test_scalability_OpenMPI(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<double>>&, const vector<std::vector<double>>&)) {
-    // Some declarations
-    cout<<"Scalability test with OpenMPI completed \n";
+    cout << "Testing scalability with different MPI process counts...\n" << endl;
+    
+    cout << "Note: MPI scalability test requires running with different process counts" << endl;
+    cout << "Example: mpirun -np 1 ./test_mpi, mpirun -np 2 ./test_mpi, etc.\n" << endl;
+    
+    vector<int> sizes = {128, 256, 512};
+    
+    cout << fixed << setprecision(2);
+    cout << "┌──────────────┬───────────────┐" << endl;
+    cout << "│ Matrix Size  │  Time (ms)    │" << endl;
+    cout << "├──────────────┼───────────────┤" << endl;
+    
+    for (int size : sizes) {
+        vector<vector<double>> A(size, vector<double>(size));
+        vector<vector<double>> B(size, vector<double>(size));
+        
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                A[i][j] = (rand() % 100) / 10.0;
+                B[i][j] = (rand() % 100) / 10.0;
+            }
+        }
+        
+        auto warmup = matrix_mult(A, B);
+        
+        double total_time = 0.0;
+        const int runs = 3;
+        
+        for (int run = 0; run < runs; run++) {
+            auto start = chrono::high_resolution_clock::now();
+            auto result = matrix_mult(A, B);
+            auto end = chrono::high_resolution_clock::now();
+            chrono::duration<double, milli> duration = end - start;
+            total_time += duration.count();
+        }
+        
+        double avg_time = total_time / runs;
+        
+        cout << "│ " << setw(4) << size << "x" << setw(4) << size 
+             << "   │ " << setw(10) << avg_time 
+             << "    │" << endl;
+        
+        if (size != sizes.back()) {
+            cout << "├──────────────┼───────────────┤" << endl;
+        }
+    }
+    
+    cout << "└──────────────┴───────────────┘" << endl;
+    cout << "\nScalability test with OpenMPI completed" << endl;
 }
 
 void test_scalability_Hybrid(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<double>>&, const vector<std::vector<double>>&)) {

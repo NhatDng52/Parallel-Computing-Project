@@ -1,4 +1,4 @@
-#include "strassen_openmp.h"
+#include "strassen_open_mp.h"
 #include "matmul_algorithms/matmul_naive.h"
 
 // OpenMP-parallelized utility functions

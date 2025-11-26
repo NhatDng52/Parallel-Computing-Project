@@ -1,5 +1,5 @@
 #include "strassen_utils/strassen_op.h"
-#include "strassen_utils/strassen_openmp.h"
+#include "strassen_utils/strassen_open_mp.h"
 #include "utils.h"
 #include "correctness_test.h"
 #include "performance_test.h"
