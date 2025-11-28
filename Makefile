@@ -25,7 +25,7 @@ DEPS := $(SRCS:.cpp=.d)
 
 TARGET := parallel_app
 
-.PHONY: all clean run mpirun debug help strassen_test hybrid_test omp_test
+.PHONY: all clean run mpirun debug help strassen_test hybrid_test omp_test mpi_test
 
 all: $(TARGET)
 
@@ -86,4 +86,15 @@ hybrid_test: $(STRASSEN_HYBRID_TEST_TARGET)
 	OMP_NUM_THREADS=$(NUM_THREADS) mpirun -np $(HYBRID_NP) ./$(STRASSEN_HYBRID_TEST_TARGET)
 
 $(STRASSEN_HYBRID_TEST_TARGET): $(STRASSEN_HYBRID_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+# Strassen MPI test target
+STRASSEN_MPI_TEST_TARGET := strassen_test_app_mpi
+STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
+MPI_NP := 1
+
+mpi_test: $(STRASSEN_MPI_TEST_TARGET)
+	mpirun -np $(MPI_NP) ./$(STRASSEN_MPI_TEST_TARGET)
+
+$(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) $(filter-out main.o, $(OBJS))
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)

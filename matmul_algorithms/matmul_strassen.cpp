@@ -2,6 +2,8 @@
 #include "strassen_utils/strassen_op.h"
 #include "strassen_utils/strassen_open_mp.h"
 #include "strassen_utils/strassen_hybrid.h"
+#include "strassen_utils/strassen_open_mpi.h"
+
 using namespace std;
 
 vector<vector<double>> matrix_mult_strassen(const vector<vector<double>> &A, const vector<vector<double>> &B) {
@@ -36,7 +38,10 @@ vector<vector<double>> matrix_mult_strassen_OpenMP(const vector<vector<double>>&
 }
 
 vector<vector<double>> matrix_mult_strassen_OpenMPI(const vector<vector<double>>& A, const vector<vector<double>>& B) {
-    throw std::runtime_error("Strassen OpenMPI function is disabled. Please enable it in the code to use.");      
+      IStrassenOp * strassenOpenMPI = new StrassenOpenMPI();
+      vector<vector<double>> result = strassenOpenMPI->apply_strassen(A, B);
+      delete strassenOpenMPI;
+      return result;
 }
 
 vector<vector<double>> matrix_mult_strassen_Hybrid(const vector<vector<double>> &A, const vector<vector<double>> &B) {
