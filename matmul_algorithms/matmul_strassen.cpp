@@ -1,6 +1,6 @@
 #include "matmul_strassen.h"
 #include "strassen_utils/strassen_op.h"
-#include "strassen_utils/strassen_open_mp.cpp"
+#include "strassen_utils/strassen_open_mp.h"
 #include "strassen_utils/strassen_hybrid.h"
 using namespace std;
 
