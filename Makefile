@@ -25,7 +25,7 @@ DEPS := $(SRCS:.cpp=.d)
 
 TARGET := parallel_app
 
-.PHONY: all clean run mpirun debug help strassen_test hybrid_test
+.PHONY: all clean run mpirun debug help strassen_test hybrid_test omp_test
 
 all: $(TARGET)
 
@@ -40,7 +40,7 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -60,20 +60,22 @@ help:
 	@echo "  make clean  - remove objects, deps and executable"
 	@echo "  make run    - run the produced executable"
 	@echo "  make mpirun - run with MPI (4 processes by default, set NP=n to change)"
-	@echo "  make strassen_test - build and run Strassen OpenMP test"
+	@echo "  make omp_test - build and run Strassen OpenMP tests"
 	@echo "  make hybrid_test - build and run Strassen Hybrid (MPI+OpenMP) test"
 	@echo "Notes: Uses mpic++ compiler with OpenMP and MPI support"
 
-# Strassen omp test target
-NUM_THREADS := 4
-STRASSEN_OMP_TEST_TARGET := strassen_test_app_omp
+# Strassen OpenMP test target
+STRASSEN_OMP_TEST_TARGET := strassen_test_omp
 STRASSEN_OMP_TEST_SRC := test/test_strassen/test_omp.cpp
+STRASSEN_OMP_OBJS := test/correctness_test.o test/performance_test.o test/scalability_test.o \
+                     strassen_utils/strassen_open_mp.o strassen_utils/strassen_naive.o \
+                     matmul_algorithms/matmul_naive.o utils.o
 
-strassen_test: $(STRASSEN_OMP_TEST_TARGET)
-	OMP_NUM_THREADS=$(NUM_THREADS) ./$(STRASSEN_OMP_TEST_TARGET)
+omp_test: $(STRASSEN_OMP_TEST_TARGET)
+	./$(STRASSEN_OMP_TEST_TARGET)
 
-$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC)
-	$(CXX) $(CXXFLAGS) -fopenmp -o $@ $^
+$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(STRASSEN_OMP_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Strassen hybrid test target
 STRASSEN_HYBRID_TEST_TARGET := strassen_test_app_hybrid
