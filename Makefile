@@ -40,7 +40,7 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET) $(NAIVETEST_OMP_TEST_TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET) $(NAIVETEST_OMP_TEST_TARGET) $(NAIVETEST_MPI_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -62,6 +62,7 @@ help:
 	@echo "  make mpirun - run with MPI (4 processes by default, set NP=n to change)"
 	@echo "  make omp_test - build and run Strassen OpenMP tests"
 	@echo "  make hybrid_test - build and run Strassen Hybrid (MPI+OpenMP) test"
+	@echo "  make mpi_test - build and run Strassen MPI test"
 	@echo "Notes: Uses mpic++ compiler with OpenMP and MPI support"
 
 # Strassen OpenMP test target
@@ -88,7 +89,7 @@ $(STRASSEN_HYBRID_TEST_TARGET): $(STRASSEN_HYBRID_TEST_SRC) $(filter-out main.o,
 # Strassen MPI test target
 STRASSEN_MPI_TEST_TARGET := strassen_test_app_mpi
 STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
-MPI_NP := 1
+MPI_NP := 4
 
 mpi_test: $(STRASSEN_MPI_TEST_TARGET)
 	mpirun -np $(MPI_NP) ./$(STRASSEN_MPI_TEST_TARGET)
@@ -98,10 +99,20 @@ $(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) $(filter-out main.o, $(OBJ
 
 NAIVETEST_OMP_TEST_TARGET := naive_test_omp_api
 NAIVETEST_OMP_TEST_SRC    := test/test_naive/naive_omp.cpp
-NP := 4
+NP := 1
 
 naive_test_omp: $(NAIVETEST_OMP_TEST_TARGET)
 	./$(NAIVETEST_OMP_TEST_TARGET)
 
 $(NAIVETEST_OMP_TEST_TARGET): $(NAIVETEST_OMP_TEST_SRC) $(filter-out main.o, $(OBJS))
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+
+NAIVETEST_MPI_TEST_TARGET := naive_test_mpi_api
+NAIVETEST_MPI_TEST_SRC    := test/test_naive/naive_mpi.cpp
+
+naive_test_mpi: $(NAIVETEST_MPI_TEST_TARGET)
+	mpirun -np $(NP) ./$(NAIVETEST_MPI_TEST_TARGET)
+
+$(NAIVETEST_MPI_TEST_TARGET): $(NAIVETEST_MPI_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
