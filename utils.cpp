@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <filesystem>
 
 const double EPSILON = 1e-9;
 
@@ -85,6 +86,12 @@ void print_matrix(const std::vector<std::vector<double>>& m) {
 }
 
 void write_matrix_to_csv(const std::string& filepath, const std::vector<std::vector<double>>& matrix) {
+    namespace fs = std::filesystem;
+    fs::path path(filepath);
+    if (path.has_parent_path()) {
+        fs::create_directories(path.parent_path());
+    }
+
     std::ofstream file(filepath);
     
     if (!file.is_open()) {
