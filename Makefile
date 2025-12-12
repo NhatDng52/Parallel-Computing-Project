@@ -19,7 +19,7 @@ LDFLAGS := -fopenmp
 LDLIBS := -lmpi
 
 # sources (root, matmul_algorithms, test)
-SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp) $(wildcard strassen_utils/*.cpp)
+SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp) $(wildcard strassen_utils/*.cpp) $(wildcard naive_utils/*.cpp)
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(SRCS:.cpp=.d)
 
@@ -40,7 +40,7 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET) $(NAIVETEST_OMP_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -95,3 +95,13 @@ mpi_test: $(STRASSEN_MPI_TEST_TARGET)
 
 $(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) $(filter-out main.o, $(OBJS))
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+NAIVETEST_OMP_TEST_TARGET := naive_test_omp_api
+NAIVETEST_OMP_TEST_SRC    := test/test_naive/naive_omp.cpp
+NP := 4
+
+naive_test_omp: $(NAIVETEST_OMP_TEST_TARGET)
+	./$(NAIVETEST_OMP_TEST_TARGET)
+
+$(NAIVETEST_OMP_TEST_TARGET): $(NAIVETEST_OMP_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
