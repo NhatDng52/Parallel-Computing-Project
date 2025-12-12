@@ -67,14 +67,11 @@ help:
 # Strassen OpenMP test target
 STRASSEN_OMP_TEST_TARGET := strassen_test_omp
 STRASSEN_OMP_TEST_SRC := test/test_strassen/test_omp.cpp
-STRASSEN_OMP_OBJS := test/correctness_test.o test/performance_test.o test/scalability_test.o \
-                     strassen_utils/strassen_open_mp.o strassen_utils/strassen_naive.o \
-                     matmul_algorithms/matmul_naive.o utils.o
 
 omp_test: $(STRASSEN_OMP_TEST_TARGET)
 	./$(STRASSEN_OMP_TEST_TARGET)
 
-$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(STRASSEN_OMP_OBJS)
+$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(filter-out main.o, $(OBJS))
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Strassen hybrid test target
