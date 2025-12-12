@@ -25,3 +25,10 @@ vector<vector<double>> matrix_mult_naive_OpenMPI(const vector<vector<double>>& A
     */
    return vector<vector<double>>{};
 }
+
+vector<vector<double>> matrix_mult_naive_Hybrid(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+    /*
+        Implement code 
+    */
+   return vector<vector<double>>{};
+}
