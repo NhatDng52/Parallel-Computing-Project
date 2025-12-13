@@ -1,5 +1,6 @@
 #include "strassen_open_mpi.h"
 #include "matmul_algorithms/matmul_naive.h"
+#include <algorithm>
 
 int WORLD_RANK, WORLD_SIZE;
 const int THRESHOLD = 64;
@@ -104,10 +105,22 @@ Matrix StrassenOpenMPI::apply_strassen(const Matrix &A, const Matrix &B) {
     MPI_Comm_rank(MPI_COMM_WORLD, &WORLD_RANK);
     MPI_Comm_size(MPI_COMM_WORLD, &WORLD_SIZE);
 
+    int n_dim = 0;
     if (WORLD_RANK == 0) {
-        int n = A.size();
-        if (n <= THRESHOLD) return matrix_mult_naive(A, B);
+        n_dim = A.empty() ? 0 : std::max((int)A.size(), (int)A[0].size());
+    }
+    
+    MPI_Bcast(&n_dim, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+    if (n_dim <= THRESHOLD) {
+        if (WORLD_RANK == 0) {
+            return matrix_mult_naive(A, B);
+        } else {
+            return {};
+        }
+    }
+
+    if (WORLD_RANK == 0) {
         Matrix A_pad = padding(A);
         Matrix B_pad = padding(B);
         
@@ -137,14 +150,27 @@ Matrix StrassenOpenMPI::implement_strassen(const Matrix &A, const Matrix &B) {
         vector<Matrix> rhs = { mat_add(B11, B22), B11, mat_sub(B12, B22), mat_sub(B21, B11), B22, mat_add(B11, B12), mat_add(B21, B22) };
 
         int num_workers = WORLD_SIZE - 1; 
-        if (num_workers == 0) {
-             return matrix_mult_naive(A, B); 
-        }
+        if (num_workers == 0) return matrix_mult_naive(A, B); 
+
+        vector<vector<double>> send_buffers_lhs(7);
+        vector<vector<double>> send_buffers_rhs(7);
+        vector<MPI_Request> requests; 
+        requests.reserve(14);
 
         for (int i = 0; i < 7; i++) {
             int dest = (i % num_workers) + 1;
-            send_matrix(lhs[i], dest, i * 2);
-            send_matrix(rhs[i], dest, i * 2 + 1);
+            
+            send_buffers_lhs[i] = flatten(lhs[i]);
+            MPI_Request req_l;
+            MPI_Isend(send_buffers_lhs[i].data(), send_buffers_lhs[i].size(), MPI_DOUBLE, 
+                      dest, i * 2, MPI_COMM_WORLD, &req_l);
+            requests.push_back(req_l);
+
+            send_buffers_rhs[i] = flatten(rhs[i]);
+            MPI_Request req_r;
+            MPI_Isend(send_buffers_rhs[i].data(), send_buffers_rhs[i].size(), MPI_DOUBLE, 
+                      dest, i * 2 + 1, MPI_COMM_WORLD, &req_r);
+            requests.push_back(req_r);
         }
 
         vector<Matrix> M(7);
@@ -152,6 +178,7 @@ Matrix StrassenOpenMPI::implement_strassen(const Matrix &A, const Matrix &B) {
             int src = (i % num_workers) + 1;
             M[i] = recv_matrix(src, local_n, 100 + i);
         }
+        MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
 
         Matrix C11 = mat_add(mat_sub(mat_add(M[0], M[3]), M[4]), M[6]);
         Matrix C12 = mat_add(M[2], M[4]);
