@@ -1,4 +1,8 @@
 #include "matmul_naive.h"
+#include "naive_utils/naive_omp.h"
+#include "naive_utils/naive_mpi.h"
+#include "naive_utils/naive_hybrid.h"
+
 using namespace std;
 vector<vector<double>> matrix_mult_naive(const vector<vector<double>>& A, const vector<vector<double>>& B) {
     vector<vector<double>> result(A.size(), vector<double>(B[0].size(), 0.0));
@@ -14,14 +18,12 @@ vector<vector<double>> matrix_mult_naive(const vector<vector<double>>& A, const 
    return result;
 }
 vector<vector<double>> matrix_mult_naive_OpenMP(const vector<vector<double>>& A, const vector<vector<double>>& B) {
-    /*
-        Implement code 
-    */
-   return vector<vector<double>>{};
+    return NaiveOmp::matrix_mult(A, B);
 }
 vector<vector<double>> matrix_mult_naive_OpenMPI(const vector<vector<double>>& A, const vector<vector<double>>& B) {
-    /*
-        Implement code 
-    */
-   return vector<vector<double>>{};
+    return NaiveMpi::matrix_mult(A, B);
+}
+
+vector<vector<double>> matrix_mult_naive_Hybrid(const vector<vector<double>>& A, const vector<vector<double>>& B) {
+    return NaiveHybrid::matrix_mult(A, B);
 }

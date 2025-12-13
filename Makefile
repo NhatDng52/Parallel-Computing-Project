@@ -19,7 +19,7 @@ LDFLAGS := -fopenmp
 LDLIBS := -lmpi
 
 # sources (root, matmul_algorithms, test)
-SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp) $(wildcard strassen_utils/*.cpp)
+SRCS := $(wildcard *.cpp) $(wildcard matmul_algorithms/*.cpp) $(wildcard test/*.cpp) $(wildcard strassen_utils/*.cpp) $(wildcard naive_utils/*.cpp)
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(SRCS:.cpp=.d)
 
@@ -40,7 +40,7 @@ $(TARGET): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(STRASSEN_OMP_TEST_TARGET) $(STRASSEN_MPI_TEST_TARGET) $(STRASSEN_HYBRID_TEST_TARGET) $(NAIVETEST_OMP_TEST_TARGET) $(NAIVETEST_MPI_TEST_TARGET) $(NAIVETEST_HYBRID_TEST_TARGET)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -62,19 +62,17 @@ help:
 	@echo "  make mpirun - run with MPI (4 processes by default, set NP=n to change)"
 	@echo "  make omp_test - build and run Strassen OpenMP tests"
 	@echo "  make hybrid_test - build and run Strassen Hybrid (MPI+OpenMP) test"
+	@echo "  make mpi_test - build and run Strassen MPI test"
 	@echo "Notes: Uses mpic++ compiler with OpenMP and MPI support"
 
 # Strassen OpenMP test target
 STRASSEN_OMP_TEST_TARGET := strassen_test_omp
 STRASSEN_OMP_TEST_SRC := test/test_strassen/test_omp.cpp
-STRASSEN_OMP_OBJS := test/correctness_test.o test/performance_test.o test/scalability_test.o \
-                     strassen_utils/strassen_open_mp.o strassen_utils/strassen_naive.o \
-                     matmul_algorithms/matmul_naive.o utils.o
 
 omp_test: $(STRASSEN_OMP_TEST_TARGET)
 	./$(STRASSEN_OMP_TEST_TARGET)
 
-$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(STRASSEN_OMP_OBJS)
+$(STRASSEN_OMP_TEST_TARGET): $(STRASSEN_OMP_TEST_SRC) $(filter-out main.o, $(OBJS))
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Strassen hybrid test target
@@ -91,10 +89,40 @@ $(STRASSEN_HYBRID_TEST_TARGET): $(STRASSEN_HYBRID_TEST_SRC) $(filter-out main.o,
 # Strassen MPI test target
 STRASSEN_MPI_TEST_TARGET := strassen_test_app_mpi
 STRASSEN_MPI_TEST_SRC := test/test_strassen/test_mpi.cpp
-MPI_NP := 1
+MPI_NP := 4
 
 mpi_test: $(STRASSEN_MPI_TEST_TARGET)
 	mpirun -np $(MPI_NP) ./$(STRASSEN_MPI_TEST_TARGET)
 
 $(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+NAIVETEST_OMP_TEST_TARGET := naive_test_omp_api
+NAIVETEST_OMP_TEST_SRC    := test/test_naive/naive_omp.cpp
+NP := 1
+
+naive_test_omp: $(NAIVETEST_OMP_TEST_TARGET)
+	./$(NAIVETEST_OMP_TEST_TARGET)
+
+$(NAIVETEST_OMP_TEST_TARGET): $(NAIVETEST_OMP_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+
+NAIVETEST_MPI_TEST_TARGET := naive_test_mpi_api
+NAIVETEST_MPI_TEST_SRC    := test/test_naive/naive_mpi.cpp
+
+naive_test_mpi: $(NAIVETEST_MPI_TEST_TARGET)
+	mpirun -np $(NP) ./$(NAIVETEST_MPI_TEST_TARGET)
+
+$(NAIVETEST_MPI_TEST_TARGET): $(NAIVETEST_MPI_TEST_SRC) $(filter-out main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+NAIVETEST_HYBRID_TEST_TARGET := naive_hybrid_test_api
+NAIVETEST_HYBRID_TEST_SRC    := test/test_naive/naive_hybrid.cpp
+NUM_THREADS := 4
+
+naive_hybrid_test: $(NAIVETEST_HYBRID_TEST_TARGET)
+	OMP_NUM_THREADS=$(NUM_THREADS) mpirun -np $(HYBRID_NP) ./naive_hybrid_test_api
+
+$(NAIVETEST_HYBRID_TEST_TARGET): $(NAIVETEST_HYBRID_TEST_SRC) $(filter-out main.o, $(OBJS))
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)

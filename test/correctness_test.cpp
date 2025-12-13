@@ -2,8 +2,12 @@
 #include <iostream>
 using namespace std;
 void test_correctness(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<double>>&, const vector<std::vector<double>>&)) {
+    cout << "=== RUNNING CORRECTNESS TESTS ===" << endl;
+    cout << "TEST 01" << endl;
     test_1(matrix_mult);
+    cout << "TEST 02" << endl;
     test_2(matrix_mult);
+    cout << "TEST 03" << endl;
     test_3(matrix_mult);
     cout<<"Correctness tests completed \n";
 }
@@ -20,18 +24,19 @@ void test_1(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<
         vector<vector<double>> AC = matrix_mult(A, C);
         
         if(!compare_matrices(AA, A)) {
-            cout << "Test 1 Failed: A * A != A" << endl;
+            throw std::runtime_error("Test 1 Failed: A * A != A");
         }
         if(!compare_matrices(AB, B)) {
-            cout << "Test 1 Failed: A * B != B" << endl;
+            throw std::runtime_error("Test 1 Failed: A * B != B");
         }
         if(!compare_matrices(AC, C)) {
-            cout << "Test 1 Failed: A * C != C" << endl;
+            throw std::runtime_error("Test 1 Failed: A * C != C");
         }
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return;
     }
     
     cout<<"Test 1 completed \n";
@@ -51,11 +56,14 @@ void test_2(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<
             print_matrix(expected);
             cout << "Got:" << endl;
             print_matrix(result);
+
+            throw std::runtime_error("Test 2 Failed");
         }
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return;
     }
     
     cout<<"Test 2 completed \n";
@@ -65,6 +73,7 @@ void test_3(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<
     vector<vector<double>> A = read_matrix_from_csv("./test/test_case/medium_random_matrix_A_256x256.csv");
     vector<vector<double>> B = read_matrix_from_csv("./test/test_case/medium_random_matrix_B_256x256.csv");
     vector<vector<double>> C = read_matrix_from_csv("./test/test_case/medium_random_matrix_C_256x256.csv");
+    cout << "Testing associativity: (A * B) * C == A * (B * C)" << endl;
     try
     {
         vector<vector<double>> AB = matrix_mult(A, B);
@@ -76,19 +85,20 @@ void test_3(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<
         if(!compare_matrices(ABC_1, ABC_2)) {
             write_matrix_to_csv("./test/results/3B_ABC_1.csv", ABC_1);
             write_matrix_to_csv("./test/results/3B_ABC_2.csv", ABC_2);
-            cout << "Test 3 Failed: (A * B) * C != A * (B * C)" << endl;
+            throw std::runtime_error("Test 3 Failed: (A * B) * C != A * (B * C)");
         }
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return;
     }
 
     //3E 
     vector<vector<double>> I = read_matrix_from_csv("./test/test_case/medium_identity_matrix_256x256.csv");
     vector<vector<double>> AI = matrix_mult(A, I);
     vector<vector<double>> IA = matrix_mult(I, A);
-        
+    cout << "Testing identity: A * I == A and I * A == A" << endl;
     try
     {
         if(!compare_matrices(AI, A)) {
@@ -97,18 +107,20 @@ void test_3(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<
         }
         if(!compare_matrices(IA, A)) {
             write_matrix_to_csv("./test/results/3E_IA.csv", IA);
-            cout << "Test 3 Failed: I * A != A" << endl;
+            throw std::runtime_error("Test 3 Failed: I * A != A");
         }
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return;
     }
 
     //3F 
     vector<vector<double>> zero = read_matrix_from_csv("./test/test_case/medium_zero_matrix_256x256.csv");
     vector<vector<double>> Azero = matrix_mult(A, zero);
     vector<vector<double>> zeroA = matrix_mult(zero, A);
+    cout << "Testing zero matrix: A * 0 == 0 and 0 * A == 0" << endl;
     try
     {
         if(!compare_matrices(Azero, zero)) {
@@ -117,30 +129,32 @@ void test_3(vector<std::vector<double>> (*matrix_mult)(const vector<std::vector<
         }
         if(!compare_matrices(zeroA, zero)) {
             write_matrix_to_csv("./test/results/3F_zeroA.csv", zeroA);
-            cout << "Test 3 Failed: 0 * A != 0" << endl;
+            throw std::runtime_error("Test 3 Failed: 0 * A != 0");
         }
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return;
     }
 
     //3G 
     vector<vector<double>> BA = matrix_mult(B, A);
     vector<vector<double>> AB = matrix_mult(A, B);
+    cout << "Testing commutativity: A * B == B * A" << endl;
     try
     {
-        if(compare_matrices(AB, BA)) {
+        if(!compare_matrices(AB, BA)) {
             write_matrix_to_csv("./test/results/3G_AB.csv", AB);
             write_matrix_to_csv("./test/results/3G_BA.csv", BA);
-            cout << "Test 3 Failed: A * B == B * A" << endl;
+            throw std::runtime_error("Test 3 Failed: A * B != B * A");
         }
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return;
     }
-
-
+    
     cout<<"Test 3 completed \n";
 }
