@@ -53,6 +53,18 @@ mpirun: $(TARGET)
 debug: CXXFLAGS += -g -O0
 debug: clean all
 
+# help:
+# 	@echo "Makefile targets:"
+# 	@echo "  make        - build release executable ($(TARGET)) with MPI+OpenMP support"
+# 	@echo "  make debug  - build with debug symbols"
+# 	@echo "  make clean  - remove objects, deps and executable"
+# 	@echo "  make run    - run the produced executable"
+# 	@echo "  make mpirun - run with MPI (4 processes by default, set NP=n to change)"
+# 	@echo "  make omp_test - build and run Strassen OpenMP tests"
+# 	@echo "  make hybrid_test - build and run Strassen Hybrid (MPI+OpenMP) test"
+# 	@echo "  make mpi_test - build and run Strassen MPI test"
+
+# 	@echo "Notes: Uses mpic++ compiler with OpenMP and MPI support"
 help:
 	@echo "Makefile targets:"
 	@echo "  make        - build release executable ($(TARGET)) with MPI+OpenMP support"
@@ -63,6 +75,9 @@ help:
 	@echo "  make omp_test - build and run Strassen OpenMP tests"
 	@echo "  make hybrid_test - build and run Strassen Hybrid (MPI+OpenMP) test"
 	@echo "  make mpi_test - build and run Strassen MPI test"
+	@echo "  make naive_test_omp - build and run Naive OpenMP tests"
+	@echo "  make naive_test_mpi - build and run Naive MPI tests"
+	@echo "  make naive_hybrid_test - build and run Naive Hybrid (MPI+OpenMP) test"
 	@echo "Notes: Uses mpic++ compiler with OpenMP and MPI support"
 
 # Strassen OpenMP test target
@@ -99,13 +114,13 @@ $(STRASSEN_MPI_TEST_TARGET): $(STRASSEN_MPI_TEST_SRC) $(filter-out main.o, $(OBJ
 
 NAIVETEST_OMP_TEST_TARGET := naive_test_omp_api
 NAIVETEST_OMP_TEST_SRC    := test/test_naive/naive_omp.cpp
-NP := 1
+NP := 4
 
 naive_test_omp: $(NAIVETEST_OMP_TEST_TARGET)
-	./$(NAIVETEST_OMP_TEST_TARGET)
+	OMP_NUM_THREADS=$(NP) ./$(NAIVETEST_OMP_TEST_TARGET)
 
 $(NAIVETEST_OMP_TEST_TARGET): $(NAIVETEST_OMP_TEST_SRC) $(filter-out main.o, $(OBJS))
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 
 NAIVETEST_MPI_TEST_TARGET := naive_test_mpi_api

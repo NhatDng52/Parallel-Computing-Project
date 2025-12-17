@@ -1,0 +1,39 @@
+NAIVE:
+1. Unit Test (1x1): 0.001182 ms
+2. Medium Test (256x256): 24.691 ms
+3. Large Test (2048x2048): 53090.1 ms
+
+NAIVE_OMP:
+1. Unit Test (1x1): 0.110481 ms
+2. Medium Test (256x256): 7.47009 ms
+3. Large Test (2048x2048): 23029.8 ms
+
+NAIVE_MPI:
+1. Unit Test (1x1): 0.021215 ms
+2. Medium Test (256x256): 18.0108 ms
+3. Large Test (2048x2048): 31751.4 ms
+
+NAIVE_HYBRID:
+1. Unit Test (1x1): 0.125498 ms
+2. Medium Test (256x256): 26.0252 ms
+3. Large Test (2048x2048): 17444.1 ms
+
+STRASSEN:
+1. Unit Test (1x1): 0.331014 ms
+2. Medium Test (256x256): 27.6393 ms
+3. Large Test (2048x2048): 6547.39 ms
+
+STRASSEN_OMP:
+1. Unit Test (1x1): 0.014021 ms
+2. Medium Test (256x256): 108.024 ms
+3. Large Test (2048x2048): 3186.24 ms
+
+STRASSEN_MPI:
+1. Unit Test (1x1): 0.016818 ms
+2. Medium Test (256x256): 18.0162 ms
+3. Large Test (2048x2048): 12185 ms
+
+STRASSEN_HYBRID:
+1. Unit Test (1x1): 23.014 ms
+2. Medium Test (256x256): 68.7327 ms
+3. Large Test (2048x2048): 6828.88 ms
